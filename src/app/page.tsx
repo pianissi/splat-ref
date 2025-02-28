@@ -22,6 +22,9 @@ export default function Home() {
   useLayoutEffect(() => {
     setMoodboard(new Moodboard());
 
+    
+    
+
   }, []);
 
   useEffect(() => {
@@ -32,6 +35,15 @@ export default function Home() {
       
       moodboard?.setCanvas(canvasRef.current);
       moodboard?.setup();
+
+      // load image
+      const image = new Image();
+
+      image.src = "http://localhost:3000/f-texture.png"
+      image.addEventListener('load', function() {
+        // Now that the image has loaded make copy it to the texture.
+        moodboard.onImageLoad(image);
+      });
       render();
     }
   }, [canvasRef, moodboard]);
