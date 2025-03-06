@@ -453,7 +453,6 @@ class MoodboardImage {
   }
 }
 
-const MIN_ZOOM = 0.000005;
 
 const TOP_LEFT_GIZMO_ID = 2;
 const TOP_RIGHT_GIZMO_ID = 3;
@@ -464,8 +463,6 @@ class Moodboard {
   canvas: HTMLCanvasElement | null;
   gl: WebGL2RenderingContext | null;
   shaderProgram: WebGLProgram | null | undefined;
-  vao: WebGLVertexArrayObject | null;
-  vbo: WebGLBuffer | null;
   fragColorTexture: WebGLTexture | null;
   idTexture: WebGLTexture | null;
   renderBuffer: WebGLRenderbuffer | null;
@@ -499,8 +496,6 @@ class Moodboard {
   constructor() {
     this.gl = null;
     this.canvas = null;
-    this.vao = null;
-    this.vbo = null;
     // this.texture = null;
     this.shaderProgram = null;
     this.renderOrder = [];
@@ -617,10 +612,8 @@ class Moodboard {
           mat3.multiply(objectMatrix, objectMatrix, moveOriginMatrix);
           
           const preZoom = vec3.create();
-          const topLeft = vec3.create();
 
           vec3.transformMat3(preZoom, vec3.fromValues(image.width, image.height, 1), objectMatrix);
-          // vec3.transformMat3(topLeft, vec3.fromValues(0, 0, 1), objectMatrix);
 
           // if gizmo, we need to move position to match
 
@@ -633,14 +626,9 @@ class Moodboard {
 
           // find new width
           const newWidth = preZoom[0] - mouseWorldPos[0];
-          const curWidth = image.width;
           
-          // console.log("%f, %f, %f", curWidth, newWidth, newScale);
           const newHeight = (preZoom[1] - mouseWorldPos[1]);
-          const curHeight = image.height;
-          // const newScale = newHeight / image.height;
           const newScale = ((newWidth / image.width) + (newHeight / image.height))/2;
-          // const newScale = (newWidth + newHeight)/ (image.width + image.height);
 
           // change the scale to match
           image.scale.x = newScale;
@@ -681,19 +669,6 @@ class Moodboard {
     });
     document.addEventListener('mouseup', () => this.mouseDown = false);
     document.addEventListener('wheel', (event) => {
-      // let cameraScaleMatrix = mat3.fromValues(
-      //   this.cameraScale.x, 0, 0,
-      //   0, this.cameraScale.y, 0,
-      //   0, 0, 1,
-      // );
-
-      // let cameraTranslationMatrix = mat3.fromValues(
-      //   1, 0, 0,
-      //   0, 1, 0,
-      //   this.cameraPosition.x, this.cameraPosition.y, 0,
-      // );
-  
-      // mat3.multiply(this.cameraProjectionMatrix, cameraScaleMatrix, cameraTranslationMatrix);
       if (this.gl === null)
         return;
 
@@ -705,12 +680,6 @@ class Moodboard {
       preZoom[0] = (this.mouse.position.x / this.cameraScale.x - this.cameraPosition.x);
       preZoom[1] = (this.mouse.position.y / this.cameraScale.y - this.cameraPosition.y);
 
-      // const invertedCameraProjectionMatrix = mat3.create();
-      // mat3.invert(invertedCameraProjectionMatrix, this.cameraProjectionMatrix);
-
-      // console.log(invertedCameraProjectionMatrix);
-      // console.log(this.cameraProjectionMatrix);
-      // vec3.transformMat3(preZoom, vec3.fromValues(this.mouse.position.x, this.mouse.position.y, 1), this.cameraProjectionMatrix);
 
       this.zoomLinear += event.deltaY * -0.015;
       
@@ -720,10 +689,6 @@ class Moodboard {
 
       const postZoom = vec3.create();
       
-      // mat3.invert(invertedCameraProjectionMatrix, this.cameraProjectionMatrix);
-      // vec3.transformMat3(postZoom, vec3.fromValues(this.mouse.position.x, this.mouse.position.y, 1), this.cameraProjectionMatrix);
-      // console.log(preZoom);
-      // console.log(postZoom);
 
       postZoom[0] = (this.mouse.position.x / this.cameraScale.x - this.cameraPosition.x);
       postZoom[1] = (this.mouse.position.y / this.cameraScale.y - this.cameraPosition.y);
@@ -732,7 +697,6 @@ class Moodboard {
       this.cameraPosition.y += postZoom[1] - preZoom[1];
       
 
-      // this.cameraScale.x = this.cameraScale.y;
     });
     
 
@@ -748,7 +712,6 @@ class Moodboard {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
     this.setupRenderBuffer();
-    // this.setFramebufferAttachmentSizes(this.gl.canvas.width, this.gl.canvas.height)
   }
 
   setup() {
@@ -778,8 +741,6 @@ class Moodboard {
     if (this.gl === null) {
       return;
     }
-
-
 
     this.bufferProgram = initShaderProgram(this.gl, framebufferVs, framebufferFs);
 
@@ -868,9 +829,6 @@ class Moodboard {
       return;
 
 
-
-    // console.log(this.cameraScale);
-    // console.log(this.zoomLinear);
     const cameraScaleMatrix = mat3.fromValues(
       this.cameraScale.x, 0, 0,
       0, this.cameraScale.y, 0,
@@ -962,7 +920,6 @@ class Moodboard {
             gizmo.renderOutline(this.gl, this.cameraProjectionMatrix, this.borderShader);
             
           }
-          // let's render our gizmos!
 
         } else {
           
@@ -984,10 +941,8 @@ class Moodboard {
     this.gl.bindVertexArray(null);
 
     const currentTime = performance.now();
-    const deltaTime = currentTime - this.time;
 
     this.time = currentTime;
-    // console.log("fps: %f", 1000/ deltaTime);
   }
 }
 
