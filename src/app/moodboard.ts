@@ -327,6 +327,7 @@ class MoodboardImage {
     const texcoordPosition = gl.getAttribLocation(this.shaderProgram, "a_texcoord");
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     gl.generateMipmap(gl.TEXTURE_2D);
     
 
@@ -393,11 +394,18 @@ class MoodboardImage {
       return;
     gl.useProgram(shader);
 
-    const borderWidth = 0.02 / cameraMatrix[0];
+    let borderWidthX = 5 / (cameraMatrix[0] * this.width);
+    let borderWidthY = 5 / (cameraMatrix[0] * this.height);
+
+    if (this.scale.x < 0)
+      borderWidthX *= -1;
+
+    if (this.scale.y < 0)
+      borderWidthY *= -1;
 
     const scaleMatrix = mat3.fromValues(
-      this.scale.x + borderWidth, 0, 0,
-      0, this.scale.y + borderWidth, 0,
+      this.scale.x + borderWidthX, 0, 0,
+      0, this.scale.y + borderWidthY, 0,
       0, 0, 1,
     );
 
@@ -464,6 +472,7 @@ class Moodboard {
   frameBuffer: WebGLFramebuffer | null;
   bufferProgram: WebGLProgram | null | undefined; 
   bufferVao: WebGLVertexArrayObject | null;
+  idCount = RESERVED_ID_NUM;
 
   cameraPosition = {x: 0, y: 0}; 
   cameraScale = {x: 1, y: 1};
@@ -735,7 +744,7 @@ class Moodboard {
     resizeCanvasToDisplaySize(this.gl.canvas);
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 
-    this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    this.gl.clearColor(0.8, 0.8, 0.8, 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
     this.setupRenderBuffer();
@@ -833,12 +842,14 @@ class Moodboard {
       return
 
     
-    for (let i = 0; i < 3; i++) {
-      const id = RESERVED_ID_NUM + i;
-      const newImage = new MoodboardImage(image.width, image.height, image, {x: rand(0, 1000), y: rand(0, 1000)}, this.shaderProgram, this.gl, id);
-      this.images.set(id, newImage);
-      this.renderOrder.push(newImage.id);
-    }
+    // for (let i = 0; i < 3; i++) {
+    const newImage = new MoodboardImage(image.width, image.height, image, {x: rand(0, 1), y: rand(0, 1)}, this.shaderProgram, this.gl, this.idCount);
+    this.images.set(this.idCount, newImage);
+    this.renderOrder.push(newImage.id);
+
+    this.idCount += 1;
+    console.log("image loaded");
+    // }
 
   }
 
@@ -877,9 +888,9 @@ class Moodboard {
 
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.frameBuffer);
 
-    this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    this.gl.clearColor(0.8, 0.8, 0.8, 1.0);
 
-    this.gl.clearBufferfv(this.gl.COLOR, 0, new Float32Array([ 0,0,0,0 ]));
+    this.gl.clearBufferfv(this.gl.COLOR, 0, new Float32Array([ 0.8, 0.8, 0.8, 1.0 ]));
     this.gl.clearBufferiv(this.gl.COLOR, 1, new Int16Array([ -1,-1,-1,-1 ]));
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
