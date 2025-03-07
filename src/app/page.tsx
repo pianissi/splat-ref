@@ -24,9 +24,8 @@ export default function Home() {
       return;
 
     if (moodboard?.canvas === null) {
-      
-      moodboard?.setCanvas(canvasRef.current);
-      moodboard?.setup();
+  
+      moodboard?.setup(canvasRef.current);
 
       // load image
       const image = new Image();
@@ -44,7 +43,7 @@ export default function Home() {
 
 
   const renderFrame = () => {
-    moodboard?.render();
+    moodboard?.process();
 
     requestAnimationFrame(renderFrame);
   };
