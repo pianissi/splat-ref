@@ -68,10 +68,10 @@ const defaultVs = `#version 300 es
     uniform mat3 u_objectMatrix;
     uniform mat3 u_cameraMatrix;
 
-    out vec2 TexCoord;
+    out vec2 texCoord;
 
     void main() {
-      TexCoord = a_texcoord;
+      texCoord = a_texcoord;
           // convert the position from pixels to 0.0 to 1.0
       vec2 position = (u_objectMatrix * vec3(a_position, 1)).xy;
 
@@ -98,14 +98,14 @@ const defaultFs = `#version 300 es
   layout (location=0) out vec4 outColor;
   layout (location=1) out int id;
 
-  in vec2 TexCoord;
+  in vec2 texCoord;
 
   uniform sampler2D ourTexture;
 
   uniform int u_id; 
 
   void main() {
-    outColor = texture(ourTexture, TexCoord * vec2(1, -1));
+    outColor = texture(ourTexture, texCoord * vec2(1, -1));
     id = u_id;
   }
 `;
@@ -114,11 +114,11 @@ const framebufferVs = `#version 300 es
 layout (location = 0) in vec4 a_position;
 layout (location = 1) in vec2 a_texcoord;
 
-out vec2 TexCoord;
+out vec2 texCoord;
 
 void main() {
   gl_Position = a_position;
-  TexCoord = a_texcoord;
+  texCoord = a_texcoord;
 }
 `;
 
@@ -127,12 +127,12 @@ const framebufferFs = `#version 300 es
 
   uniform sampler2D sampler;
 
-  in vec2 TexCoord;
+  in vec2 texCoord;
 
   out vec4 outColor;
 
   void main() {
-    outColor = texture(sampler, TexCoord);
+    outColor = texture(sampler, texCoord);
   }
 `;
 
@@ -168,13 +168,12 @@ const borderFs = `#version 300 es
   layout (location=0) out vec4 outColor;
   layout (location=1) out int id;
 
-
   uniform sampler2D ourTexture;
 
   uniform int u_id; 
 
   void main() {
-    outColor = vec4(1.0, 0.0, 0.0, 1.0);
+    outColor = vec4(0.0, 1.0, 1.0, 1.0);
     id = u_id;
   }
 `;

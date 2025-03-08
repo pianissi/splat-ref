@@ -16,20 +16,18 @@ const TOP_RIGHT_GIZMO_ID = 3;
 const BOTTOM_LEFT_GIZMO_ID = 4;
 const BOTTOM_RIGHT_GIZMO_ID = 5;
 
+const GIZMO_SIZE = 20;
+
 class Moodboard {
   canvas: HTMLCanvasElement | null;
   gl: WebGL2RenderingContext | null;
 
   idCount = RESERVED_ID_NUM;
-  shaderPrograms = new Map<string, WebGLProgram>();
 
   cameraPosition = {x: 0, y: 0}; 
   cameraScale = {x: 1, y: 1};
-
   zoomLinear = 1;
   cameraProjectionMatrix = mat3.create();
-
-  gizmos : Gizmo[];
 
   selectedIndex = -1;
   selectedImage = -1;
@@ -37,7 +35,10 @@ class Moodboard {
   renderComponent = new MoodboardRenderComponent();
   inputComponent = new MoodboardInputComponent();
 
+  shaderPrograms = new Map<string, WebGLProgram>();
+
   images = new Map<number, MoodboardImage>();
+  gizmos : MoodboardImage[];
 
   renderOrder: number[];
   
@@ -73,10 +74,10 @@ class Moodboard {
     this.shaderPrograms.set("default", shaderProgram);
     
 
-    this.gizmos.push(new Gizmo(20, 20, {x: 0, y: 0}, shaderProgram, this.gl, TOP_LEFT_GIZMO_ID));
-    this.gizmos.push(new Gizmo(20, 20, {x: 0, y: 0}, shaderProgram, this.gl, TOP_RIGHT_GIZMO_ID));
-    this.gizmos.push(new Gizmo(20, 20, {x: 0, y: 0}, shaderProgram, this.gl, BOTTOM_LEFT_GIZMO_ID));
-    this.gizmos.push(new Gizmo(20, 20, {x: 0, y: 0}, shaderProgram, this.gl, BOTTOM_RIGHT_GIZMO_ID));
+    this.gizmos.push(new MoodboardImage(GIZMO_SIZE, GIZMO_SIZE, {x: 0, y: 0}, shaderProgram, this.gl, TOP_LEFT_GIZMO_ID));
+    this.gizmos.push(new MoodboardImage(GIZMO_SIZE, GIZMO_SIZE, {x: 0, y: 0}, shaderProgram, this.gl, TOP_RIGHT_GIZMO_ID));
+    this.gizmos.push(new MoodboardImage(GIZMO_SIZE, GIZMO_SIZE, {x: 0, y: 0}, shaderProgram, this.gl, BOTTOM_LEFT_GIZMO_ID));
+    this.gizmos.push(new MoodboardImage(GIZMO_SIZE, GIZMO_SIZE, {x: 0, y: 0}, shaderProgram, this.gl, BOTTOM_RIGHT_GIZMO_ID));
 
     this.renderComponent.setup(this);
     this.inputComponent.setup(this);
@@ -93,8 +94,8 @@ class Moodboard {
     const shaderProgram = this.shaderPrograms.get("default");
     if (shaderProgram === undefined)
       return
-    // for (let i = 0; i < 3; i++) {
-    const newImage = new MoodboardImage(image.width, image.height, image, {x: rand(0, 1), y: rand(0, 1)}, shaderProgram, this.gl, this.idCount);
+
+    const newImage = new MoodboardImage(image.width, image.height, {x: rand(0, 1), y: rand(0, 1)}, shaderProgram, this.gl, this.idCount, image);
     this.images.set(this.idCount, newImage);
     this.renderOrder.push(newImage.id);
 
@@ -191,6 +192,29 @@ class MoodboardRenderComponent {
     moodboard.gl.bindFramebuffer(moodboard.gl.FRAMEBUFFER, null);
   }
 
+  resize(moodboard: Moodboard) {
+    if (moodboard.gl === null)
+      return;
+
+    resizeCanvasToDisplaySize(moodboard.gl.canvas);
+    moodboard.gl.viewport(0, 0, moodboard.gl.canvas.width, moodboard.gl.canvas.height);
+
+    moodboard.gl.clearColor(0.8, 0.8, 0.8, 1.0);
+    moodboard.gl.clear(moodboard.gl.COLOR_BUFFER_BIT);
+
+    moodboard.gl.bindTexture(moodboard.gl.TEXTURE_2D, this.fragColorTexture);
+    moodboard.gl.texStorage2D(moodboard.gl.TEXTURE_2D, 1, moodboard.gl.RGBA8, moodboard.gl.canvas.width, moodboard.gl.canvas.height);
+
+    moodboard.gl.bindTexture(moodboard.gl.TEXTURE_2D, this.idTexture);
+    moodboard.gl.texStorage2D(moodboard.gl.TEXTURE_2D, 1, moodboard.gl.R16I, moodboard.gl.canvas.width, moodboard.gl.canvas.height);
+    // Create a texture to render to
+    moodboard.gl.bindTexture(moodboard.gl.TEXTURE_2D, null);
+
+    moodboard.gl.bindRenderbuffer(moodboard.gl.RENDERBUFFER, this.renderBuffer);
+    moodboard.gl.renderbufferStorage(moodboard.gl.RENDERBUFFER, moodboard.gl.DEPTH_COMPONENT16, moodboard.gl.canvas.width, moodboard.gl.canvas.height);
+    moodboard.gl.bindRenderbuffer(moodboard.gl.RENDERBUFFER, null);
+  }
+
   pickAt(moodboard: Moodboard, position: Vector2) {
     if (moodboard.gl === null || moodboard.canvas === null)
       return;
@@ -218,6 +242,8 @@ class MoodboardRenderComponent {
 
     if (this.bufferProgram === null || this.bufferProgram === undefined)
       return;
+
+    this.resize(moodboard);
 
     const borderShader = moodboard.shaderPrograms.get("border")
     if (borderShader === null || borderShader === undefined)
@@ -251,8 +277,24 @@ class MoodboardRenderComponent {
       if (image !== undefined) {
         // console.log("true");
         if (moodboard.selectedImage === imageId) {
-          image.renderOutline(moodboard.gl, moodboard.cameraProjectionMatrix, borderShader);
-          // TODO: don't use this hardcoded magic id
+          // scale then unscale
+
+          let borderWidthX = 5 / (moodboard.cameraProjectionMatrix[0] * image.width);
+          let borderWidthY = 5 / (moodboard.cameraProjectionMatrix[0] * image.height);
+
+          if (image.scale.x < 0)
+            borderWidthX *= -1;
+
+          if (image.scale.y < 0)
+            borderWidthY *= -1;
+
+          image.scale.x += borderWidthX;
+          image.scale.y += borderWidthY;
+
+          image.render(moodboard.gl, moodboard.cameraProjectionMatrix, borderShader);
+
+          image.scale.x -= borderWidthX;
+          image.scale.y -= borderWidthY;
           
           image.render(moodboard.gl, moodboard.cameraProjectionMatrix);
 
@@ -279,39 +321,30 @@ class MoodboardRenderComponent {
           );
       
           // move origin to center
-      
-      
           mat3.multiply(objectMatrix, translationMatrix, scaleMatrix);
           mat3.multiply(objectMatrix, objectMatrix, moveOriginMatrix);
 
           for (const gizmo of moodboard.gizmos) {
             const gizmoPos = vec3.fromValues(0, 0, 1)
             if (gizmo.id === TOP_LEFT_GIZMO_ID) {
-              
               vec3.transformMat3(gizmoPos, vec3.fromValues(0, 0, 1), objectMatrix);
-              gizmo.position.x = gizmoPos[0];
-              gizmo.position.y = gizmoPos[1];
             }
             else if (gizmo.id === TOP_RIGHT_GIZMO_ID) {
               vec3.transformMat3(gizmoPos, vec3.fromValues(image.width, 0, 1), objectMatrix);
-              gizmo.position.x = gizmoPos[0];
-              gizmo.position.y = gizmoPos[1];
             }
             else if (gizmo.id === BOTTOM_LEFT_GIZMO_ID) {
               vec3.transformMat3(gizmoPos, vec3.fromValues(0, image.height, 1), objectMatrix);
-              gizmo.position.x = gizmoPos[0];
-              gizmo.position.y = gizmoPos[1];
             }
             else if (gizmo.id === BOTTOM_RIGHT_GIZMO_ID) {
               vec3.transformMat3(gizmoPos, vec3.fromValues(image.width, image.height, 1), objectMatrix);
-              gizmo.position.x = gizmoPos[0];
-              gizmo.position.y = gizmoPos[1];
             }
             
-            gizmo.position.x = gizmoPos[0];
-            gizmo.position.y = gizmoPos[1];
+            gizmo.position.x = gizmoPos[0] - (GIZMO_SIZE / 2);
+            gizmo.position.y = gizmoPos[1] - (GIZMO_SIZE / 2);
+            // rescale
+            gizmo.scale.x = 1 / moodboard.cameraProjectionMatrix[0];
 
-            gizmo.renderOutline(moodboard.gl, moodboard.cameraProjectionMatrix, borderShader);
+            gizmo.render(moodboard.gl, moodboard.cameraProjectionMatrix, borderShader);
             
           }
 
