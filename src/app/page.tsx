@@ -2,6 +2,7 @@
 import { DragEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { resizeCanvasToDisplaySize } from "@/lib/webgl-utils";
 import { Moodboard } from "./moodboard";
+import { fromJSON } from "postcss";
 
 
 
@@ -79,6 +80,9 @@ export default function Home() {
             return;
           if (file.type === "image/png" || file.type === "image/jpeg")
             handleImage(file);
+
+          if (file.type === "application/json") 
+            handleJson(file);
           console.log(`… file[${i}].name = ${file.type}`);
         }
       });
@@ -87,6 +91,8 @@ export default function Home() {
       [...e.dataTransfer.files].forEach((file, i) => {
         if (file.type === "image/png" || file.type === "image/jpeg")
           handleImage(file);
+        if (file.type === "application/json")
+          handleJson(file);
         console.log(`… file[${i}].name = ${file.type}`);
       });
     }
@@ -98,36 +104,9 @@ export default function Home() {
       return;
 
     if (moodboard !== null) {
-
-      const fReader = new FileReader();
       // load image
-      
-
-      // fReader.readAsDataURL(file);
-
       console.log("imagehandling2")
 
-      
-
-      // fReader.addEventListener('load', function() {
-      //   if (fReader.result === null || fReader.result === undefined)
-      //     return;
-      //   if (fReader.result instanceof ArrayBuffer)
-      //     return;
-
-      //   const image = new Image();
-      //   image.addEventListener('load', function() {
-      //     console.log("callback")
-      //     // Now that the image has loaded make copy it to the texture.
-      //     moodboard.onImageLoad(image);
-      //   });
-      //   image.src = fReader.result;
-      //   console.log("wild")
-      //   // Now that the image has loaded make copy it to the texture.
-        
-      //   // moodboard.onImageLoad(image);
-      //   renderFrame();
-      // });
       const image = new Image();
       image.addEventListener('load', function() {
         console.log("callback")
@@ -143,11 +122,29 @@ export default function Home() {
     }
   };
 
+  const handleJson = (file: File) => {
+    console.log("jsonhandling")
+
+    if (moodboard !== null) {
+      const reader = new FileReader();
+      reader.onloadend = function(e) {
+        if (typeof this.result !== "string")
+          return;
+        // Now that the image has loaded make copy it to the texture.
+        console.log("jsoned!");
+        moodboard.fromJSON(JSON.parse(this.result));
+      };
+
+      reader.readAsText(file);
+      renderFrame();
+    }
+  };
+
   return (
     <canvas ref={canvasRef}
       style={{
-          width: "100%",
-          height: "100%",
+          height: "100vh",
+          width: "100vw",
           overflow: "hidden"
       }}
       onDragOver={onDragOver}
