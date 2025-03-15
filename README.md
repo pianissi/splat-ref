@@ -1,5 +1,5 @@
 ## Acknowledgements
-Many thanks to (WebGL2 Fundamentals)[https://webgl2fundamentals.org/] page and (LearnOpenGL)[https://learnopengl.com/], without which I would have no clue how to implement this project, as well as Andrew Adamson whose video tutorials I followed.
+Many thanks to the [WebGL2 Fundamentals](https://webgl2fundamentals.org/) page and [LearnOpenGL](https://learnopengl.com/), without which I would have no clue how to implement this project, as well as Andrew Adamson whose video tutorials I followed.
 
 ## The other stuff
 
