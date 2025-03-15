@@ -6,11 +6,6 @@ import { MoodboardImage } from "./image";
 
 const RESERVED_ID_NUM = 100;
 
-// from https://stackoverflow.com/questions/4959975/generate-random-number-between-two-numbers-in-javascript
-function rand(min: number, max: number) { // min and max included 
-  return Math.floor(Math.random() * (max - min + 1) + min);
-}
-
 const UNSELECTED = 0;
 
 const TOP_LEFT_GIZMO_ID = 2;
@@ -159,7 +154,7 @@ class Moodboard {
         
         const reader = new FileReader();
         
-        reader.onloadend = function (e) {
+        reader.onloadend = function () {
 
           if (typeof this.result !== "string") {
             reject();
