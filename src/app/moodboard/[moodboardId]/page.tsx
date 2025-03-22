@@ -30,15 +30,15 @@ export default function Home() {
       moodboard?.setup(canvasRef.current);
 
       // load image
-      const image = new Image();
+      // const image = new Image();
 
-      console.log("imaging");
+      // console.log("imaging");
 
-      image.src = "http://localhost:3000/f-texture.png"
-      image.addEventListener('load', function() {
-        // Now that the image has loaded make copy it to the texture.
-        moodboard.onImageLoad(image);
-      });
+      // image.src = "http://localhost:3000/f-texture.png"
+      // image.addEventListener('load', function() {
+      //   // Now that the image has loaded make copy it to the texture.
+      //   moodboard.onImageLoad(image);
+      // });
       renderFrame();
     }
   }, [canvasRef, moodboard]);

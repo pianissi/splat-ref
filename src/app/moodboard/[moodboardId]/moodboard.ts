@@ -3,6 +3,7 @@ import { borderFs, borderVs, defaultFs, defaultVs, framebufferFs, framebufferVs,
 import { mat3, vec3 } from "gl-matrix";
 import { ImageSerial, MoodboardSerial, Mouse, Vector2 } from "./types";
 import { MoodboardImage } from "./image";
+import { VERSION } from "@/components/constants";
 
 const RESERVED_ID_NUM = 100;
 
@@ -182,6 +183,7 @@ class Moodboard {
     })
 
     const json: JSON = <JSON><unknown>{
+      "version": VERSION,
       "images": images
     };
 
