@@ -161,9 +161,11 @@ export default function Home() {
         onDragEnter={onDragEnter}
         onDrop={onFileDrop}
       >
-        <RoundContainer>
+        <RoundContainer hoverable={true}>
           <Link href="/">
-            <FiArrowLeft className="m-2" size="1.5em"></FiArrowLeft>
+            <div>
+              <FiArrowLeft className="m-2" size="1.5em"></FiArrowLeft>
+            </div>
           </Link>
         </RoundContainer>
         {isTooltipEnabled && <RoundContainer>
@@ -171,10 +173,10 @@ export default function Home() {
             Drag and drop your images to make your moodboard!
           </div>
         </RoundContainer>}
-        <RoundContainer>
-          <div onClick={() => moodboard?.saveMoodboard()}>
+        <RoundContainer hoverable={true}>
+          <button className="block" onClick={() => moodboard?.saveMoodboard()}>
             <FiSave className="m-2" size="1.5em"></FiSave>
-          </div>
+          </button>
         </RoundContainer>
       </div>
       <canvas ref={canvasRef}

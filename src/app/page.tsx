@@ -33,7 +33,7 @@ export default function Home() {
         {moodboards}
       </div>
       <div className="flex flex-row-reverse">
-        <RoundContainer>
+        <RoundContainer hoverable={true}>
           <button className="block" onClick={addMoodboard}>
             <FiPlus className="m-2" size="1.5em"></FiPlus>
           </button>
