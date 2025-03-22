@@ -135,7 +135,7 @@ class Moodboard {
 
     const promises: Promise<ImageSerial>[] = [];
 
-    for (const [key, image] of this.images) {
+    for (const [, image] of this.images) {
       
       const promise = new Promise<ImageSerial>(async (resolve, reject) => {
         if (image.image === null) {
@@ -211,6 +211,10 @@ class Moodboard {
         
       });
     }
+  }
+
+  saveMoodboard() {
+    this.toJson().then((json) => saveFile(json, "moodboard.json"));
   }
 
   process() {
