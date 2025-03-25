@@ -14,10 +14,21 @@ export interface ImageSerial {
 
 export interface MoodboardSerial {
   images: ImageSerial[];
+  id: number,
+  name: string,
+  ownerId: number,
+  thumbnail: ImageSerial;
 }
 
 export interface Mouse {
   position: Vector2;
   delta: Vector2;
   isDown: boolean;
+}
+
+export interface MoodboardData {
+  moodboardId: number,
+  moodboardName: string,
+  ownerId: number,
+  thumbnail?: HTMLImageElement | null,
 }

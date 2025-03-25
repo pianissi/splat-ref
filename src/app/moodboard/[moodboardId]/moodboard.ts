@@ -1,7 +1,7 @@
 import { resizeCanvasToDisplaySize } from "@/lib/webgl-utils";
 import { borderFs, borderVs, defaultFs, defaultVs, framebufferFs, framebufferVs, initShaderProgram } from "./shaders";
 import { mat3, vec3 } from "gl-matrix";
-import { ImageSerial, MoodboardSerial, Mouse, Vector2 } from "./types";
+import { ImageSerial, MoodboardData, MoodboardSerial, Mouse, Vector2 } from "./types";
 import { MoodboardImage } from "./image";
 import { VERSION } from "@/components/constants";
 
@@ -65,12 +65,15 @@ class Moodboard {
   gizmos : MoodboardImage[];
 
   renderOrder: number[];
+
+  moodboardData : MoodboardData = {"moodboardId": -1, "ownerId": -1, "moodboardName": "unassigned moodboard name", "thumbnail": null};
   
-  constructor() {
+  constructor(moodboardData: MoodboardData) {
     this.renderOrder = [];
     this.gizmos = [];
     this.gl = null;
     this.canvas = null;
+    this.moodboardData = moodboardData;
   }
 
   setup(canvas: HTMLCanvasElement) {
@@ -131,6 +134,43 @@ class Moodboard {
     console.log("image loaded");
   }
 
+  async toImageSerial(image: HTMLImageElement | null, width: number, height: number, position: Vector2, scale: Vector2) {
+    return new Promise<ImageSerial>(async (resolve, reject) => {
+      if (image === null) {
+        reject();
+        return;
+      }
+
+      if (image.src === null) {
+        reject();
+        return;
+      }
+      
+      const response = await fetch(image.src);
+
+      const blob = await response.blob();
+      
+      const reader = new FileReader();
+      
+      reader.onloadend = function () {
+
+        if (typeof this.result !== "string") {
+          reject();
+          return;
+        }
+        resolve({
+          "width": width,
+          "height": height,
+          "position": position,
+          "scale": scale,
+          "data": this.result,
+        });
+      }
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
   async toJson() {
     const images : ImageSerial[] = [];
 
@@ -138,40 +178,7 @@ class Moodboard {
 
     for (const [, image] of this.images) {
       
-      const promise = new Promise<ImageSerial>(async (resolve, reject) => {
-        if (image.image === null) {
-          reject();
-          return;
-        }
-  
-        if (image.image.src === null) {
-          reject();
-          return;
-        }
-        
-        const response = await fetch(image.image.src);
-
-        const blob = await response.blob();
-        
-        const reader = new FileReader();
-        
-        reader.onloadend = function () {
-
-          if (typeof this.result !== "string") {
-            reject();
-            return;
-          }
-          resolve({
-            "width": image.width,
-            "height": image.height,
-            "position": image.position,
-            "scale": image.scale,
-            "data": this.result,
-          });
-        }
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+      const promise = this.toImageSerial(image.image, image.width, image.height, image.position, image.scale);
       promises.push(promise);
     }
 
@@ -182,9 +189,21 @@ class Moodboard {
       console.log(imagePromises);
     })
 
+    let thumbnailData;
+
+    if (this.moodboardData.thumbnail) {
+      await this.toImageSerial(this.moodboardData.thumbnail, -1, -1, {x:0, y:0}, {x:1, y:1}).then((imagePromise) => {
+        thumbnailData = imagePromise;
+      })
+    }
+
     const json: JSON = <JSON><unknown>{
       "version": VERSION,
-      "images": images
+      "images": images,
+      "id": this.moodboardData.moodboardId,
+      "thumbnail": thumbnailData,
+      "name": this.moodboardData.moodboardName,
+      "ownerId": this.moodboardData.ownerId,
     };
 
     return json;
@@ -194,25 +213,35 @@ class Moodboard {
     if (!("images" in obj))
       return;
 
-    for (const image of obj.images) {
-      fetch(image.data).then(res => res.blob()).then((myBlob) => {
-        const objectURL = URL.createObjectURL(myBlob);
-        const imageElement = new Image();
-        const loadImage = () => {
-          this.loadImage(imageElement, image.width, image.height, image.position, image.scale);
-        }
-        imageElement.addEventListener('load', function() {
-          console.log("callback")
-          // Now that the image has loaded make copy it to the texture.
-          loadImage();
-        });
-        imageElement.src = objectURL;
-        document.body.appendChild(imageElement);
-        console.log(objectURL);
-        console.log(imageElement);
-        
+    if ("thumbnail" in obj) {
+      this.loadImageSerial(obj.thumbnail, (imageElement, width, height, position, scale) => {
+        this.moodboardData.thumbnail = imageElement;
       });
     }
+    
+    for (const image of obj.images) {
+      this.loadImageSerial(image, this.loadImage.bind(this))
+    }
+  }
+
+  loadImageSerial(image: ImageSerial, onLoad:(imageElement: HTMLImageElement, width: number, height: number, position: Vector2, scale: Vector2)=>void) {
+    fetch(image.data).then(res => res.blob()).then((myBlob) => {
+      const objectURL = URL.createObjectURL(myBlob);
+      const imageElement = new Image();
+      // const loadImage = () => {
+      //   this.loadImage();
+      // }
+      imageElement.addEventListener('load', function() {
+        console.log("callback")
+        // Now that the image has loaded make copy it to the texture.
+        onLoad(imageElement, image.width, image.height, image.position, image.scale);
+      });
+      imageElement.src = objectURL;
+      document.body.appendChild(imageElement);
+      console.log(objectURL);
+      console.log(imageElement);
+      
+    });
   }
 
   saveMoodboard() {

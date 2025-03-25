@@ -17,7 +17,7 @@ export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useLayoutEffect(() => {
-    setMoodboard(new Moodboard());
+    setMoodboard(new Moodboard({"moodboardId": -1, "ownerId": -1, "moodboardName": "unassigned moodboard name", "thumbnail": null}));
 
   }, []);
 
@@ -162,8 +162,8 @@ export default function Home() {
         onDrop={onFileDrop}
       >
         <RoundContainer hoverable={true}>
-          <Link href="/">
-            <div>
+          <Link href="/" className="block">
+            <div className="block h-max overflow-hidden">
               <FiArrowLeft className="m-2" size="1.5em"></FiArrowLeft>
             </div>
           </Link>
