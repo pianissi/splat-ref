@@ -179,6 +179,9 @@ class MoodboardImage {
     this.mesh.render(gl, cameraMatrix, this, shaderProgram);
   }
 
+  unmount() {
+    this.image?.remove();
+  }
   // renderOutline(gl: WebGL2RenderingContext, cameraMatrix: mat3, shaderProgram: WebGLProgram) {
   //   this.mesh.renderOutline(gl, cameraMatrix, shaderProgram, this);
   // }

@@ -4,21 +4,26 @@ import { resizeCanvasToDisplaySize } from "@/lib/webgl-utils";
 import { Moodboard } from "./moodboard";
 import { fromJSON } from "postcss";
 import Link from "next/link";
-import { FiArrowLeft, FiSave } from "react-icons/fi";
+import { FiArrowLeft, FiDownload, FiSave } from "react-icons/fi";
 import { RoundContainer } from "../../../components/RoundContainer";
+import { getMoodboard, initDb } from "@/api/moodboard";
+import { useParams, useRouter } from "next/navigation";
 
 
 
 
 export default function Home() {
+
+  const params = useParams<{moodboardId: string}>();
   const [moodboard, setMoodboard] = useState<Moodboard | null>(null);
   const [isTooltipEnabled, setIsTooltipEnabled] = useState<boolean>(true);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const router = useRouter();
 
   useLayoutEffect(() => {
-    setMoodboard(new Moodboard({"moodboardId": -1, "ownerId": -1, "moodboardName": "unassigned moodboard name", "thumbnail": null}));
-
+    // get moodboardId
+    setMoodboard(new Moodboard({"moodboardId": Number(params.moodboardId), "ownerId": -1, "moodboardName": "unassigned moodboard name", "thumbnail": null}));
   }, []);
 
   useEffect(() => {
@@ -39,9 +44,58 @@ export default function Home() {
       //   // Now that the image has loaded make copy it to the texture.
       //   moodboard.onImageLoad(image);
       // });
+      const init = async () => {
+        await initDb();
+        const savedMoodboard = await getMoodboard(Number(params.moodboardId));
+        if (!savedMoodboard)
+          return;
+
+        if (!savedMoodboard.moodboardData) {
+          moodboard.setMoodboardMetadata({"moodboardId": Number(params.moodboardId), "ownerId": -1, "moodboardName": savedMoodboard.moodboardName, "thumbnail": null});
+          return;
+        }
+
+        let json = JSON.parse(savedMoodboard.moodboardData);
+        
+        moodboard.fromJSON(JSON.parse(savedMoodboard.moodboardData));
+        
+      }
+      init();
       renderFrame();
     }
+
+    return () => {
+      console.log("i'm unmounting")
+      if (!moodboard)
+        return;
+      moodboard.saveMoodboardToLocalDb();
+
+      moodboard.unmount();
+    }
   }, [canvasRef, moodboard]);
+
+  useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      
+      
+      if (!moodboard) {
+        return;
+      }
+  
+      
+      moodboard.saveMoodboardToLocalDb();
+
+      moodboard.unmount();
+      return (event.returnValue = '');
+    }
+    
+    window.addEventListener('beforeunload', onBeforeUnload, {capture: true});
+
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload, {capture: true});
+    };
+  }, []);
 
 
   const renderFrame = () => {
@@ -49,8 +103,6 @@ export default function Home() {
 
     requestAnimationFrame(renderFrame);
   };
-
-  
 
   // useEffect(() => {
   const onDragOver = (e: DragEvent<HTMLElement>) => {
@@ -173,11 +225,19 @@ export default function Home() {
             Drag and drop your images to make your moodboard!
           </div>
         </RoundContainer>}
-        <RoundContainer hoverable={true}>
-          <button className="block" onClick={() => moodboard?.saveMoodboard()}>
-            <FiSave className="m-2" size="1.5em"></FiSave>
-          </button>
-        </RoundContainer>
+        <div className="">
+          <RoundContainer hoverable={true}>
+            <button className="block" onClick={() => moodboard?.saveMoodboardToLocalDb()}>
+              <FiSave className="m-2" size="1.5em"></FiSave>
+            </button>
+          </RoundContainer>
+          <RoundContainer hoverable={true}>
+            <button className="block" onClick={() => moodboard?.saveMoodboard()}>
+              <FiDownload className="m-2" size="1.5em"></FiDownload>
+            </button>
+          </RoundContainer>
+        </div>
+        
       </div>
       <canvas ref={canvasRef}
         style={{

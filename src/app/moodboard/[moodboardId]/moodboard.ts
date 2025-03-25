@@ -4,6 +4,7 @@ import { mat3, vec3 } from "gl-matrix";
 import { ImageSerial, MoodboardData, MoodboardSerial, Mouse, Vector2 } from "./types";
 import { MoodboardImage } from "./image";
 import { VERSION } from "@/components/constants";
+import { MoodboardObject, updateMoodboard } from "@/api/moodboard";
 
 const RESERVED_ID_NUM = 100;
 
@@ -171,10 +172,28 @@ class Moodboard {
     });
   }
 
-  async toJson() {
+  async toObj() {
     const images : ImageSerial[] = [];
 
     const promises: Promise<ImageSerial>[] = [];
+
+    await new Promise(async (resolve, reject) => {
+      this.canvas?.toBlob((blob) => {
+        if (blob === null) {
+          console.log("huh?")
+          reject();
+          return;
+        }
+        this.moodboardData.thumbnail = new Image();
+        const url = URL.createObjectURL(blob);
+  
+        this.moodboardData.thumbnail.onload = () => {
+          resolve(true);
+        }
+
+        this.moodboardData.thumbnail.src = url;
+      }, "image/jpeg", 0.95);
+    });
 
     for (const [, image] of this.images) {
       
@@ -189,6 +208,8 @@ class Moodboard {
       console.log(imagePromises);
     })
 
+    // time to screenshot
+    
     let thumbnailData;
 
     if (this.moodboardData.thumbnail) {
@@ -197,7 +218,7 @@ class Moodboard {
       })
     }
 
-    const json: JSON = <JSON><unknown>{
+    return {
       "version": VERSION,
       "images": images,
       "id": this.moodboardData.moodboardId,
@@ -205,8 +226,12 @@ class Moodboard {
       "name": this.moodboardData.moodboardName,
       "ownerId": this.moodboardData.ownerId,
     };
+  }
 
-    return json;
+  async toJson() {
+    return await this.toObj().then((obj) => {
+      return <JSON><unknown>obj;
+    })
   }
   
   async fromJSON(obj: MoodboardSerial) {
@@ -217,6 +242,18 @@ class Moodboard {
       this.loadImageSerial(obj.thumbnail, (imageElement, width, height, position, scale) => {
         this.moodboardData.thumbnail = imageElement;
       });
+    }
+
+    if ("id" in obj) {
+      this.moodboardData.moodboardId = obj.id;
+    }
+
+    if ("name" in obj) {
+      this.moodboardData.moodboardName = obj.name;
+    }
+
+    if ("ownerId" in obj) {
+      this.moodboardData.ownerId = obj.ownerId;
     }
     
     for (const image of obj.images) {
@@ -248,8 +285,36 @@ class Moodboard {
     this.toJson().then((json) => saveFile(json, "moodboard.json"));
   }
 
+  setMoodboardMetadata(moodboardData: MoodboardData) {
+    this.moodboardData = moodboardData;
+  }
+
+  saveMoodboardToLocalDb() {
+    this.toObj().then((obj) => {
+      const data = JSON.stringify(<JSON><unknown>obj);
+
+      const moodboardObj :MoodboardObject = {
+        moodboardId: this.moodboardData.moodboardId,
+        moodboardName: this.moodboardData.moodboardName,
+        ownerId: this.moodboardData.ownerId,
+        thumbnail: obj.thumbnail,
+        moodboardData: data,
+      };
+
+      updateMoodboard(moodboardObj);
+    });
+  }
+
   process() {
     this.renderComponent.process(this);
+  }
+
+  unmount() {
+    this.inputComponent.remove(this);
+    for (const [, image] of this.images)  {
+      image.unmount();
+    }
+    this.moodboardData.thumbnail?.remove();
   }
 }
 
@@ -527,11 +592,47 @@ class MoodboardInputComponent {
   
   mouse : Mouse = {position: {x: 0, y: 0}, delta: {x: 0, y: 0}, isDown: false};
 
+  handleMouseDown : (event: MouseEvent) => void = () => {};
+  handleMouseMove : (event: MouseEvent) => void = () => {};
+  handleMouseUp : (event: MouseEvent) => void = () => {};
+  handleWheel : (event: WheelEvent) => void = () => {};
+  handleKeyDown : (event: KeyboardEvent) => void = () => {};
+  
   setup(moodboard: Moodboard) {
-    // setup mouse listeners
+    // // setup mouse listeners
+    // this.handleMouseDown = this.onMouseDown.bind(this, event, moodboard);
+    document.addEventListener('mousedown', this.handleMouseDown = (event) => {
+      this.onMouseDown(event, moodboard);
+    });
+    document.addEventListener('mousemove', this.handleMouseMove = (event) => {
+      this.onMouseMove(event, moodboard);
+    });
+    document.addEventListener('mouseup', this.handleMouseUp = (event) => {
+      this.onMouseUp();
+    });
+    document.addEventListener('wheel', this.handleWheel = (event) => {
+      this.onWheel(event, moodboard);
+    });
+    document.addEventListener('keydown', this.handleKeyDown = (e) => {
+      this.onKeyDown(e, moodboard);
+    });
+  }
 
-    document.addEventListener('mousedown', (event) => {
-      this.mouse.isDown = true;
+  
+  remove(moodboard: Moodboard) {
+
+    console.log("i am being removed");
+    document.removeEventListener('mousedown', this.handleMouseDown);
+    document.removeEventListener('mousemove', this.handleMouseMove);
+    document.removeEventListener('mouseup', this.handleMouseUp);
+    document.removeEventListener('wheel', this.handleWheel);
+    document.removeEventListener('keydown', this.handleKeyDown);
+  }
+
+  
+
+  onMouseDown(event: MouseEvent, moodboard: Moodboard) {
+    this.mouse.isDown = true;
       this.mouse.position.x = event.pageX;
       this.mouse.position.y = event.pageY;
       this.mouse.delta = {x: 0, y: 0};
@@ -554,147 +655,152 @@ class MoodboardInputComponent {
       moodboard.renderOrder.splice(moodboard.renderOrder.findIndex(index => index === moodboard.selectedIndex), 1);
       moodboard.renderOrder.push(moodboard.selectedIndex);
 
-    });
-    document.addEventListener('mousemove', (event) => {
-      
-      this.mouse.delta = {x: event.pageX - this.mouse.position.x, y: event.pageY - this.mouse.position.y};
-      this.mouse.position.x = event.pageX;
-      this.mouse.position.y = event.pageY;
-      this.mouse.delta.x /= moodboard.cameraScale.x;
-      this.mouse.delta.y /= moodboard.cameraScale.y;
-      
-      if (!this.mouse.isDown) 
+  }
+
+  onMouseMove(event: MouseEvent, moodboard: Moodboard) {
+    
+    this.mouse.delta = {x: event.pageX - this.mouse.position.x, y: event.pageY - this.mouse.position.y};
+    this.mouse.position.x = event.pageX;
+    this.mouse.position.y = event.pageY;
+    this.mouse.delta.x /= moodboard.cameraScale.x;
+    this.mouse.delta.y /= moodboard.cameraScale.y;
+    
+    if (!this.mouse.isDown) 
+      return;
+
+    if (moodboard.selectedIndex !== UNSELECTED) {
+      // check if is an actual image
+
+      const image = moodboard.images.get(moodboard.selectedImage)
+      if (image === undefined)
         return;
 
-      if (moodboard.selectedIndex !== UNSELECTED) {
-        // check if is an actual image
+      // let's do gizmos
+      if (moodboard.selectedIndex === TOP_LEFT_GIZMO_ID || moodboard.selectedIndex === TOP_RIGHT_GIZMO_ID || moodboard.selectedIndex === BOTTOM_LEFT_GIZMO_ID || moodboard.selectedIndex === BOTTOM_RIGHT_GIZMO_ID) {
+        let scaleMatrix = mat3.fromValues(
+          image.scale.x, 0, 0,
+          0, image.scale.y, 0,
+          0, 0, 1,
+        );
+    
+        const translationMatrix = mat3.fromValues(
+          1, 0, 0,
+          0, 1, 0,
+          image.position.x + (image.width / 2), image.position.y + (image.height / 2), 1,
+        );
+    
+        const objectMatrix = mat3.create();
+    
+        const moveOriginMatrix = mat3.fromValues(
+          1, 0, 0,
+          0, 1, 0,
+          -(image.width / 2), -(image.height / 2), 1,
+        );
+        // move origin to center
+    
+        mat3.multiply(objectMatrix, translationMatrix, scaleMatrix);
+        mat3.multiply(objectMatrix, objectMatrix, moveOriginMatrix);
+        
+        const preZoom = vec3.create();
 
-        const image = moodboard.images.get(moodboard.selectedImage)
-        if (image === undefined)
-          return;
-
-        // let's do gizmos
-        if (moodboard.selectedIndex === TOP_LEFT_GIZMO_ID || moodboard.selectedIndex === TOP_RIGHT_GIZMO_ID || moodboard.selectedIndex === BOTTOM_LEFT_GIZMO_ID || moodboard.selectedIndex === BOTTOM_RIGHT_GIZMO_ID) {
-          let scaleMatrix = mat3.fromValues(
-            image.scale.x, 0, 0,
-            0, image.scale.y, 0,
-            0, 0, 1,
-          );
-      
-          const translationMatrix = mat3.fromValues(
-            1, 0, 0,
-            0, 1, 0,
-            image.position.x + (image.width / 2), image.position.y + (image.height / 2), 1,
-          );
-      
-          const objectMatrix = mat3.create();
-      
-          const moveOriginMatrix = mat3.fromValues(
-            1, 0, 0,
-            0, 1, 0,
-            -(image.width / 2), -(image.height / 2), 1,
-          );
-          // move origin to center
-      
-          mat3.multiply(objectMatrix, translationMatrix, scaleMatrix);
-          mat3.multiply(objectMatrix, objectMatrix, moveOriginMatrix);
-          
-          const preZoom = vec3.create();
-
-          let offset = vec3.fromValues(image.width, image.height, 1);
-          if (moodboard.selectedIndex === TOP_LEFT_GIZMO_ID) {
-            offset = vec3.fromValues(image.width, image.height, 1);
-          } else if (moodboard.selectedIndex === TOP_RIGHT_GIZMO_ID) {
-            offset = vec3.fromValues(0, image.height, 1);
-          } else if (moodboard.selectedIndex === BOTTOM_LEFT_GIZMO_ID) {
-            offset = vec3.fromValues(image.width, 0, 1);
-          } else if (moodboard.selectedIndex === BOTTOM_RIGHT_GIZMO_ID) {
-            offset = vec3.fromValues(0, 0, 1);
-          }
-
-          vec3.transformMat3(preZoom, offset, objectMatrix);
-
-          // transform mouse position to world position
-
-          const mouseWorldPos = vec3.create();
-          mouseWorldPos[0] = (this.mouse.position.x / moodboard.cameraScale.x - moodboard.cameraPosition.x);
-          mouseWorldPos[1] = (this.mouse.position.y / moodboard.cameraScale.y - moodboard.cameraPosition.y);
-
-          let newWidth = 0;
-          let newHeight = 0;
-          if (moodboard.selectedIndex === TOP_LEFT_GIZMO_ID) {
-            newWidth = preZoom[0] - mouseWorldPos[0];
-            newHeight = preZoom[1] - mouseWorldPos[1];
-          } else if (moodboard.selectedIndex === TOP_RIGHT_GIZMO_ID) {
-            newWidth = mouseWorldPos[0] - preZoom[0];
-            newHeight = preZoom[1] - mouseWorldPos[1];
-          } else if (moodboard.selectedIndex === BOTTOM_LEFT_GIZMO_ID) {
-            newWidth = preZoom[0] - mouseWorldPos[0];
-            newHeight = mouseWorldPos[1] - preZoom[1];
-          } else if (moodboard.selectedIndex === BOTTOM_RIGHT_GIZMO_ID) {
-            newWidth = mouseWorldPos[0] - preZoom[0];
-            newHeight = mouseWorldPos[1] - preZoom[1];
-          }
-          const newScale = ((newWidth / image.width) + (newHeight / image.height))/2;
-
-          // change the scale to match
-          image.setScale({x: newScale, y: newScale});
-
-          // bottom right
-          console.log("%f, %f", newHeight, mouseWorldPos[1]);
-          
-
-          scaleMatrix = mat3.fromValues(
-            image.scale.x, 0, 0,
-            0, image.scale.y, 0,
-            0, 0, 1,
-          );
-
-          const postZoom = vec3.create();
-          
-          mat3.multiply(objectMatrix, translationMatrix, scaleMatrix);
-          mat3.multiply(objectMatrix, objectMatrix, moveOriginMatrix);
-          
-
-          vec3.transformMat3(postZoom, offset, objectMatrix);
-
-          image.move({x: -postZoom[0] + preZoom[0], y: -postZoom[1] + preZoom[1]});
-
-        } else {
-          image.move(this.mouse.delta);
+        let offset = vec3.fromValues(image.width, image.height, 1);
+        if (moodboard.selectedIndex === TOP_LEFT_GIZMO_ID) {
+          offset = vec3.fromValues(image.width, image.height, 1);
+        } else if (moodboard.selectedIndex === TOP_RIGHT_GIZMO_ID) {
+          offset = vec3.fromValues(0, image.height, 1);
+        } else if (moodboard.selectedIndex === BOTTOM_LEFT_GIZMO_ID) {
+          offset = vec3.fromValues(image.width, 0, 1);
+        } else if (moodboard.selectedIndex === BOTTOM_RIGHT_GIZMO_ID) {
+          offset = vec3.fromValues(0, 0, 1);
         }
+
+        vec3.transformMat3(preZoom, offset, objectMatrix);
+
+        // transform mouse position to world position
+
+        const mouseWorldPos = vec3.create();
+        mouseWorldPos[0] = (this.mouse.position.x / moodboard.cameraScale.x - moodboard.cameraPosition.x);
+        mouseWorldPos[1] = (this.mouse.position.y / moodboard.cameraScale.y - moodboard.cameraPosition.y);
+
+        let newWidth = 0;
+        let newHeight = 0;
+        if (moodboard.selectedIndex === TOP_LEFT_GIZMO_ID) {
+          newWidth = preZoom[0] - mouseWorldPos[0];
+          newHeight = preZoom[1] - mouseWorldPos[1];
+        } else if (moodboard.selectedIndex === TOP_RIGHT_GIZMO_ID) {
+          newWidth = mouseWorldPos[0] - preZoom[0];
+          newHeight = preZoom[1] - mouseWorldPos[1];
+        } else if (moodboard.selectedIndex === BOTTOM_LEFT_GIZMO_ID) {
+          newWidth = preZoom[0] - mouseWorldPos[0];
+          newHeight = mouseWorldPos[1] - preZoom[1];
+        } else if (moodboard.selectedIndex === BOTTOM_RIGHT_GIZMO_ID) {
+          newWidth = mouseWorldPos[0] - preZoom[0];
+          newHeight = mouseWorldPos[1] - preZoom[1];
+        }
+        const newScale = ((newWidth / image.width) + (newHeight / image.height))/2;
+
+        // change the scale to match
+        image.setScale({x: newScale, y: newScale});
+
+        // bottom right
+        console.log("%f, %f", newHeight, mouseWorldPos[1]);
+        
+
+        scaleMatrix = mat3.fromValues(
+          image.scale.x, 0, 0,
+          0, image.scale.y, 0,
+          0, 0, 1,
+        );
+
+        const postZoom = vec3.create();
+        
+        mat3.multiply(objectMatrix, translationMatrix, scaleMatrix);
+        mat3.multiply(objectMatrix, objectMatrix, moveOriginMatrix);
+        
+
+        vec3.transformMat3(postZoom, offset, objectMatrix);
+
+        image.move({x: -postZoom[0] + preZoom[0], y: -postZoom[1] + preZoom[1]});
+
+      } else {
+        image.move(this.mouse.delta);
       }
-      if (moodboard.selectedIndex === UNSELECTED) {
-        moodboard.cameraPosition.x += this.mouse.delta.x;
-        moodboard.cameraPosition.y += this.mouse.delta.y;
-      }
-    });
-    document.addEventListener('mouseup', () => this.mouse.isDown = false);
-    document.addEventListener('wheel', (event) => {
+    }
+    if (moodboard.selectedIndex === UNSELECTED) {
+      moodboard.cameraPosition.x += this.mouse.delta.x;
+      moodboard.cameraPosition.y += this.mouse.delta.y;
+    }
+  }
 
-      const preZoom = vec3.create();
-      // convert to world coords
+  onMouseUp() {
+    this.mouse.isDown = false;
+  }
 
-      preZoom[0] = (this.mouse.position.x / moodboard.cameraScale.x - moodboard.cameraPosition.x);
-      preZoom[1] = (this.mouse.position.y / moodboard.cameraScale.y - moodboard.cameraPosition.y);
+  onWheel(event: WheelEvent, moodboard: Moodboard) {
+    const preZoom = vec3.create();
+    // convert to world coords
 
-      // we compute zoom here
-      moodboard.zoomLinear += event.deltaY * -0.015;
-      moodboard.cameraScale.x = Math.exp(moodboard.zoomLinear * 0.1);
-      moodboard.cameraScale.y = moodboard.cameraScale.x;
+    preZoom[0] = (this.mouse.position.x / moodboard.cameraScale.x - moodboard.cameraPosition.x);
+    preZoom[1] = (this.mouse.position.y / moodboard.cameraScale.y - moodboard.cameraPosition.y);
 
-      const postZoom = vec3.create();
+    // we compute zoom here
+    moodboard.zoomLinear += event.deltaY * -0.015;
+    moodboard.cameraScale.x = Math.exp(moodboard.zoomLinear * 0.1);
+    moodboard.cameraScale.y = moodboard.cameraScale.x;
 
-      postZoom[0] = (this.mouse.position.x / moodboard.cameraScale.x - moodboard.cameraPosition.x);
-      postZoom[1] = (this.mouse.position.y / moodboard.cameraScale.y - moodboard.cameraPosition.y);
+    const postZoom = vec3.create();
 
-      // move position to mouse location
-      moodboard.cameraPosition.x += postZoom[0] - preZoom[0];
-      moodboard.cameraPosition.y += postZoom[1] - preZoom[1];
-      
-    });
-    document.addEventListener('keydown', (e) => {
-      e.preventDefault();
+    postZoom[0] = (this.mouse.position.x / moodboard.cameraScale.x - moodboard.cameraPosition.x);
+    postZoom[1] = (this.mouse.position.y / moodboard.cameraScale.y - moodboard.cameraPosition.y);
+
+    // move position to mouse location
+    moodboard.cameraPosition.x += postZoom[0] - preZoom[0];
+    moodboard.cameraPosition.y += postZoom[1] - preZoom[1];
+    
+  }
+
+  onKeyDown(e: KeyboardEvent, moodboard: Moodboard) {
+    e.preventDefault();
       
       if (e.key === "Delete") {
         if (moodboard.selectedImage === UNSELECTED)
@@ -708,8 +814,7 @@ class MoodboardInputComponent {
         return;
       }
       
-      console.log('Pressed a key without a handler.')
-    });
+      console.log('Pressed a key without a handler.');
   }
 
 }
