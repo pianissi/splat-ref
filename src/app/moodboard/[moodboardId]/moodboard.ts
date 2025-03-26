@@ -639,23 +639,23 @@ class MoodboardInputComponent {
   
   mouse : Mouse = {position: {x: 0, y: 0}, delta: {x: 0, y: 0}, isDown: false};
 
-  handleMouseDown : (event: MouseEvent) => void = () => {};
-  handleMouseMove : (event: MouseEvent) => void = () => {};
-  handleMouseUp : (event: MouseEvent) => void = () => {};
+  handlePointerDown : (event: PointerEvent) => void = () => {};
+  handlePointerMove : (event: PointerEvent) => void = () => {};
+  handlePointerUp : (event: PointerEvent) => void = () => {};
   handleWheel : (event: WheelEvent) => void = () => {};
   handleKeyDown : (event: KeyboardEvent) => void = () => {};
   
   setup(moodboard: Moodboard) {
     // // setup mouse listeners
     // this.handleMouseDown = this.onMouseDown.bind(this, event, moodboard);
-    document.addEventListener('mousedown', this.handleMouseDown = (event) => {
-      this.onMouseDown(event, moodboard);
+    document.addEventListener('pointerdown', this.handlePointerDown = (event) => {
+      this.onPointerDown(event, moodboard);
     });
-    document.addEventListener('mousemove', this.handleMouseMove = (event) => {
-      this.onMouseMove(event, moodboard);
+    document.addEventListener('pointermove', this.handlePointerMove = (event) => {
+      this.onPointerMove(event, moodboard);
     });
-    document.addEventListener('mouseup', this.handleMouseUp = (event) => {
-      this.onMouseUp();
+    document.addEventListener('mouseup', this.handlePointerUp = (event) => {
+      this.onPointerUp();
     });
     document.addEventListener('wheel', this.handleWheel = (event) => {
       this.onWheel(event, moodboard);
@@ -669,16 +669,16 @@ class MoodboardInputComponent {
   remove(moodboard: Moodboard) {
 
     console.log("i am being removed");
-    document.removeEventListener('mousedown', this.handleMouseDown);
-    document.removeEventListener('mousemove', this.handleMouseMove);
-    document.removeEventListener('mouseup', this.handleMouseUp);
+    document.removeEventListener('pointerdown', this.handlePointerDown);
+    document.removeEventListener('pointermove', this.handlePointerMove);
+    document.removeEventListener('mouseup', this.handlePointerUp);
     document.removeEventListener('wheel', this.handleWheel);
     document.removeEventListener('keydown', this.handleKeyDown);
   }
 
   
 
-  onMouseDown(event: MouseEvent, moodboard: Moodboard) {
+  onPointerDown(event: PointerEvent, moodboard: Moodboard) {
     this.mouse.isDown = true;
     this.mouse.position.x = event.pageX;
     this.mouse.position.y = event.pageY;
@@ -704,7 +704,7 @@ class MoodboardInputComponent {
 
   }
 
-  onMouseMove(event: MouseEvent, moodboard: Moodboard) {
+  onPointerMove(event: PointerEvent, moodboard: Moodboard) {
     
     this.mouse.delta = {x: event.pageX - this.mouse.position.x, y: event.pageY - this.mouse.position.y};
     this.mouse.position.x = event.pageX;
@@ -819,7 +819,7 @@ class MoodboardInputComponent {
     }
   }
 
-  onMouseUp() {
+  onPointerUp() {
     this.mouse.isDown = false;
   }
 

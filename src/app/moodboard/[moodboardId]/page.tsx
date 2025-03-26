@@ -208,7 +208,7 @@ export default function Home() {
   };
 
   return (
-    <div>
+    <div className="touch-none">
       <div
         style={{
           display: "flex",
@@ -246,7 +246,7 @@ export default function Home() {
           event.nativeEvent.stopImmediatePropagation();
           console.log("stopping propogations");
         }}>
-          <RoundContainer className="flex flex-row">
+          <RoundContainer className="flex flex-row mx-0">
             {/* {isBrowser && <RoundContainer className="m-2">
               <div className="m-2 mx-4 text-gray-500" suppressHydrationWarning>
                 Drag and drop images to make your moodboard!
