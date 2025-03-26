@@ -644,6 +644,12 @@ class MoodboardInputComponent {
   handlePointerUp : (event: PointerEvent) => void = () => {};
   handleWheel : (event: WheelEvent) => void = () => {};
   handleKeyDown : (event: KeyboardEvent) => void = () => {};
+
+  
+  prevDiff = -1;
+  prevAveragePos = {x: -1, y: -1};
+
+  eventCache : PointerEvent[] = [];
   
   setup(moodboard: Moodboard) {
     // // setup mouse listeners
@@ -654,8 +660,8 @@ class MoodboardInputComponent {
     document.addEventListener('pointermove', this.handlePointerMove = (event) => {
       this.onPointerMove(event, moodboard);
     });
-    document.addEventListener('mouseup', this.handlePointerUp = (event) => {
-      this.onPointerUp();
+    document.addEventListener('pointerup', this.handlePointerUp = (event) => {
+      this.onPointerUp(event);
     });
     document.addEventListener('wheel', this.handleWheel = (event) => {
       this.onWheel(event, moodboard);
@@ -671,18 +677,28 @@ class MoodboardInputComponent {
     console.log("i am being removed");
     document.removeEventListener('pointerdown', this.handlePointerDown);
     document.removeEventListener('pointermove', this.handlePointerMove);
-    document.removeEventListener('mouseup', this.handlePointerUp);
+    document.removeEventListener('pointerup', this.handlePointerUp);
     document.removeEventListener('wheel', this.handleWheel);
     document.removeEventListener('keydown', this.handleKeyDown);
   }
 
+  removeEvent(event: PointerEvent) {
+    // Remove this event from the target's cache
+    const index = this.eventCache.findIndex(
+      (cachedEv) => cachedEv.pointerId === event.pointerId,
+    );
+    this.eventCache.splice(index, 1);
+  }
   
 
   onPointerDown(event: PointerEvent, moodboard: Moodboard) {
+    this.eventCache.push(event);
+
     this.mouse.isDown = true;
     this.mouse.position.x = event.pageX;
     this.mouse.position.y = event.pageY;
     this.mouse.delta = {x: 0, y: 0};
+
 
     moodboard.renderComponent.pickAt(moodboard, this.mouse.position);
 
@@ -709,16 +725,70 @@ class MoodboardInputComponent {
     this.mouse.delta = {x: event.pageX - this.mouse.position.x, y: event.pageY - this.mouse.position.y};
     this.mouse.position.x = event.pageX;
     this.mouse.position.y = event.pageY;
-    this.mouse.delta.x /= moodboard.cameraScale.x;
-    this.mouse.delta.y /= moodboard.cameraScale.y;
-    
-    if (!this.mouse.isDown) 
+    // if (!this.mouse.isDown) 
+    //   return;
+    let posDelta = this.mouse.delta;
+
+    const index = this.eventCache.findIndex(
+      (cachedEv) => cachedEv.pointerId === event.pointerId,
+    );
+    this.eventCache[index] = event;
+
+    if (this.eventCache.length === 0)
       return;
+
+    if (this.eventCache.length === 2) {
+      // Calculate the distance between the two pointers
+      const curDiff = Math.sqrt(Math.pow(this.eventCache[0].clientX - this.eventCache[1].clientX, 2) + Math.pow(this.eventCache[0].clientY - this.eventCache[1].clientY, 2));
+      // set mouse position
+        // average
+      const averagePos = {x: (this.eventCache[0].pageX + this.eventCache[1].pageX)/2, y: (this.eventCache[0].pageY + this.eventCache[1].pageY)/2};
+      if (this.prevAveragePos.x === -1)
+        posDelta = {x: 0, y: 0};
+      else
+        posDelta = {x: averagePos.x - this.prevAveragePos.x, y: averagePos.y - this.prevAveragePos.y};
+      this.prevAveragePos = averagePos;
+
+      if (this.prevDiff > 0) {
+        if (curDiff > this.prevDiff) {
+          // The distance between the two pointers has increased
+          console.log("Pinch moving OUT -> Zoom in", event);
+        }
+        if (curDiff < this.prevDiff) {
+          // The distance between the two pointers has decreased
+          console.log("Pinch moving IN -> Zoom out", event);
+        }
+
+        const delta = (curDiff - this.prevDiff);
+        if (moodboard.selectedImage === UNSELECTED)
+          this.zoomCamera(delta  * 0.09, averagePos, moodboard);
+        else {
+          const image = moodboard.images.get(moodboard.selectedImage);
+          if (image) {
+            const oldScale = Math.log(image.scale.x);
+            const newScale = Math.exp(oldScale + delta * 0.03);
+          // change the scale to match
+            image.setScale({x: newScale, y: newScale});
+          }
+        }
+        // multitouch zoom
+      }
+
+      // Cache the distance for the next move event
+      this.prevDiff = curDiff;
+    }
+
+    
+    posDelta.x /= moodboard.cameraScale.x;
+    posDelta.y /= moodboard.cameraScale.y;
 
     if (moodboard.selectedIndex !== UNSELECTED) {
       // check if is an actual image
+      if (this.eventCache.length >= 2) {
+        return;
+      }
 
-      const image = moodboard.images.get(moodboard.selectedImage)
+      const image = moodboard.images.get(moodboard.selectedImage);
       if (image === undefined)
         return;
 
@@ -814,36 +884,49 @@ class MoodboardInputComponent {
       }
     }
     if (moodboard.selectedIndex === UNSELECTED) {
-      moodboard.cameraPosition.x += this.mouse.delta.x;
-      moodboard.cameraPosition.y += this.mouse.delta.y;
+      moodboard.cameraPosition.x += posDelta.x;
+      moodboard.cameraPosition.y += posDelta.y;
     }
   }
 
-  onPointerUp() {
+  onPointerUp(event: PointerEvent) {
+    if (this.eventCache.length < 0) {
+      return;
+    }
+    this.removeEvent(event);
     this.mouse.isDown = false;
+    if (this.eventCache.length < 2) {
+      this.eventCache = [];
+      this.prevAveragePos = {x: -1, y: -1};
+      this.prevDiff = -1;
+    }
   }
 
   onWheel(event: WheelEvent, moodboard: Moodboard) {
+    
+    this.zoomCamera(event.deltaY * -0.015, this.mouse.position, moodboard)
+  }
+
+  zoomCamera(zoomDelta: number, zoomOrigin: Vector2, moodboard: Moodboard) {
     const preZoom = vec3.create();
     // convert to world coords
 
-    preZoom[0] = (this.mouse.position.x / moodboard.cameraScale.x - moodboard.cameraPosition.x);
-    preZoom[1] = (this.mouse.position.y / moodboard.cameraScale.y - moodboard.cameraPosition.y);
+    preZoom[0] = (zoomOrigin.x / moodboard.cameraScale.x - moodboard.cameraPosition.x);
+    preZoom[1] = (zoomOrigin.y / moodboard.cameraScale.y - moodboard.cameraPosition.y);
 
     // we compute zoom here
-    moodboard.zoomLinear += event.deltaY * -0.015;
+    moodboard.zoomLinear += zoomDelta;
     moodboard.cameraScale.x = Math.exp(moodboard.zoomLinear * 0.1);
     moodboard.cameraScale.y = moodboard.cameraScale.x;
 
     const postZoom = vec3.create();
 
-    postZoom[0] = (this.mouse.position.x / moodboard.cameraScale.x - moodboard.cameraPosition.x);
-    postZoom[1] = (this.mouse.position.y / moodboard.cameraScale.y - moodboard.cameraPosition.y);
+    postZoom[0] = (zoomOrigin.x / moodboard.cameraScale.x - moodboard.cameraPosition.x);
+    postZoom[1] = (zoomOrigin.y / moodboard.cameraScale.y - moodboard.cameraPosition.y);
 
     // move position to mouse location
     moodboard.cameraPosition.x += postZoom[0] - preZoom[0];
     moodboard.cameraPosition.y += postZoom[1] - preZoom[1];
-    
   }
 
   onKeyDown(e: KeyboardEvent, moodboard: Moodboard) {

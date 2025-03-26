@@ -236,7 +236,7 @@ export default function Home() {
             </Link>
           </RoundContainer>
           {isBrowser && <RoundContainer>
-              <div className="m-2 mx-4 text-gray-500 max-w-sm text-ellipsis overflow-hidden text-nowrap">
+              <div className="m-2 mx-4 text-gray-500 max-w-sm text-ellipsis overflow-hidden text-nowrap" suppressHydrationWarning>
                 {name}
               </div>
             </RoundContainer>}
@@ -277,7 +277,7 @@ export default function Home() {
         </div>
         <div className="flex flex-row items-start">
           {isBrowser && <RoundContainer className="opacity-0">
-            <div className="m-2 mx-4 text-gray-500 max-w-sm text-ellipsis overflow-hidden text-nowrap">
+            <div className="m-2 mx-4 text-gray-500 max-w-sm text-ellipsis overflow-hidden text-nowrap" suppressHydrationWarning>
               {name}
             </div>
           </RoundContainer>}
