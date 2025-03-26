@@ -156,9 +156,15 @@ export default function Home() {
   return (
     <div>
       <div className="flex flex-col justify-start h-dvh w-dvw bg-gray-100">
-        <div className="flex px-2 justify-between items-center bg-gray-100 shadow-md border-b border-gray-300">
-          <div className="text-2xl m-4 font-bold h-fit w-auto text-gray-700">
-            Your Moodboards
+        <div className="flex px-4 justify-between items-center bg-gray-100 shadow-md border-b border-gray-300">
+          <div className="flex flex-row gap-4 text-2xl m-4 font-bold h-fit items-center align-middle w-auto text-gray-700">
+            <Image src="/splat-ref-icon.png" width={36} height={36 } alt="Icon of SplatRef"/>
+            <div className="text-2xl font-bold text-gray-700">
+              SplatRef
+            </div>
+            <div className="text-xl px-4 font-normal text-gray-600">
+              Local Moodboards
+            </div>
           </div>
           {/* <RoundContainer hoverable={true}>
             <div className="m-2 text-gray-700">
