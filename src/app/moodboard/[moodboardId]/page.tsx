@@ -12,6 +12,7 @@ import { isBrowser, isMobile } from "react-device-detect";
 import { LuImageMinus, LuImagePlus } from "react-icons/lu";
 import { Dialog } from "radix-ui";
 import { MdOutlineDriveFileRenameOutline } from "react-icons/md";
+import { RiCrosshair2Line } from "react-icons/ri";
 
 
 
@@ -250,8 +251,11 @@ export default function Home() {
                 <LuImagePlus className="m-2" color="#666666" size="1.5em"></LuImagePlus>
               </label>
             </RoundContainer>
-            
-            
+            <RoundContainer hoverable={true} className="m-2">
+              <button className="block" onClick={() => moodboard?.setCameraAttributes({x: 0, y: 0}, 1)}>
+                <RiCrosshair2Line className="m-2" color="#666666" size="1.5em"></RiCrosshair2Line>
+              </button>
+            </RoundContainer>
             {selectedImageId !== UNSELECTED && <div className="flex flex-row">
               <div className="w-1 rounded-md m-2 bg-gray-300"/>
               <RoundContainer hoverable={true } className="m-2">
