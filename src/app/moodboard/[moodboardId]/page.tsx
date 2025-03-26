@@ -241,7 +241,7 @@ export default function Home() {
               </div>
             </RoundContainer>}
         </div>
-        <div onMouseDown={(event) => {
+        <div onPointerDown={(event) => {
           event.stopPropagation();
           event.nativeEvent.stopImmediatePropagation();
           console.log("stopping propogations");
