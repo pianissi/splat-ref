@@ -2,7 +2,7 @@
 import { addMoodboard, clearDb, getAllMoodboards, initDb, MoodboardObject, MoodboardMini, deleteMoodboard } from "@/api/moodboard";
 import Link from "next/link";
 import { Dialog, DropdownMenu } from "radix-ui";
-import { FormEventHandler, ReactElement, SyntheticEvent, useEffect, useState } from "react";
+import { ReactElement, useEffect, useState } from "react";
 import { FiMoreVertical, FiPlus, FiTrash, FiUpload, FiX } from "react-icons/fi";
 import Image from "next/image";
 
@@ -116,24 +116,18 @@ export default function Home() {
     console.log("init");
   }, []);
 
-  const handleAddMoodboard = (event: SyntheticEvent<HTMLFormElement>) => {
+  const handleAddMoodboard = (name: string) => {
     
-    const target = event.target as typeof event.target & {
-      name: {value: string};
-    };
-    console.log(target);
-
     const newMoodboard : MoodboardObject = {
       moodboardId: -1,
-      moodboardName: target.name.value,
+      moodboardName: name,
       moodboardData: ""
     }
 
     console.log(newMoodboard);
 
     addMoodboard(newMoodboard);
-    console.log("yes");
-    
+    window.location.reload();
   };
 
   const handleUploadMoodboard = (jsonString: string) => {
@@ -156,15 +150,21 @@ export default function Home() {
     console.log(newMoodboard);
 
     addMoodboard(newMoodboard);
-    
+    window.location.reload();
   };
 
   return (
     <div>
       <div className="flex flex-col justify-start h-dvh w-dvw bg-gray-100">
-        <div className="flex px-2 justify-between items-center bg-gray-100 shadow-md border-b border-gray-300">
-          <div className="text-2xl m-4 font-bold h-fit w-auto text-gray-700">
-            Your Moodboards
+        <div className="flex px-4 justify-between items-center bg-gray-100 shadow-md border-b border-gray-300">
+          <div className="flex flex-row gap-4 text-2xl m-4 font-bold h-fit items-center align-middle w-auto text-gray-700">
+            <Image src="/splat-ref-icon.png" width={36} height={36 } alt="Icon of SplatRef"/>
+            <div className="text-2xl font-bold text-gray-700">
+              SplatRef
+            </div>
+            <div className="text-xl px-4 font-normal text-gray-600">
+              Local Moodboards
+            </div>
           </div>
           {/* <RoundContainer hoverable={true}>
             <div className="m-2 text-gray-700">
@@ -187,6 +187,7 @@ export default function Home() {
           <UploadMoodboardDialog handleSubmit={handleUploadMoodboard}></UploadMoodboardDialog>
           <DeleteDialog handleSubmit={() => {
             clearDb();
+            window.location.reload();
           }}/>
         </div>
       </div>
@@ -202,9 +203,17 @@ function MoodboardLink({children, moodboardId}: {children: ReactElement, moodboa
   );
 }
 
-function MoodboardDialog({handleSubmit}: Props) {
+function MoodboardDialog({handleSubmit}: {handleSubmit: (arg0: string) => void}) {
+  const [open, setOpen] = useState<boolean>(false);
+  const [name, setName] = useState<string>("New Moodboard");
+
+  const onSubmit = () => {
+    handleSubmit(name);
+    setOpen(false);
+  }
+
   return (
-    <Dialog.Root>
+    <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
         <button className="block pointer-events-auto bg-white justify-center align-middle m-4 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
           <FiPlus className="m-2" color="#666666" size="4em"></FiPlus>
@@ -214,33 +223,38 @@ function MoodboardDialog({handleSubmit}: Props) {
         <Dialog.Overlay className="fixed inset-0 bg-[#000000a9]"/>
         <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-5 rounded-lg">
           <Dialog.Title className="text-xl font-bold text-gray-700">Add moodboard</Dialog.Title>
-          <form method="post" onSubmit={handleSubmit}>
-            <fieldset className="py-2 flex">
-              <label htmlFor="name" className="pr-2 py-2 text-gray-500">
-                Name
-              </label>
-              <input id="name" className="unset p-2 rounded-md flex outline-gray-400 text-gray-500 outline-dashed outline-1 focus:outline focus:outline-2 focus:gray-600" defaultValue="New Moodboard"/>
-            </fieldset>
-            <div className="flex justify-end">
-              <button type="submit" className="block text-gray-500 bg-white justify-center align-middle m-2 p-2 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
-                Add
-              </button>
-            </div>
-          </form>
-           <Dialog.Close asChild>
-             <button className="block absolute top-2 right-2">
-               <FiX className="m-2" color="#666666" size="1.2em"></FiX>
-             </button>
-           </Dialog.Close>
+          <fieldset className="py-2 flex">
+            <label htmlFor="name" className="pr-2 py-2 text-gray-500">
+              Name
+            </label>
+            <input id="name" className="unset p-2 rounded-md flex outline-gray-400 text-gray-500 outline-dashed outline-1 focus:outline focus:outline-2 focus:gray-600" value={name} onChange={e => setName(e.target.value)}/>
+          </fieldset>
+          <div className="flex justify-end">
+            <button onClick={onSubmit} className="block text-gray-500 bg-white justify-center align-middle m-2 p-2 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
+              Add
+            </button>
+          </div>
+          <Dialog.Close asChild>
+            <button className="block absolute top-2 right-2">
+              <FiX className="m-2" color="#666666" size="1.2em"></FiX>
+            </button>
+          </Dialog.Close>
          </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
   )
 }
 
-function DeleteDialog({handleSubmit}: {handleSubmit?: () => void}) {
+function DeleteDialog({handleSubmit}: {handleSubmit: () => void}) {
+  const [open, setOpen] = useState<boolean>(false);
+
+  const onSubmit = () => {
+    handleSubmit();
+    setOpen(false);
+  }
+
   return (
-    <Dialog.Root>
+    <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
         <button className="block pointer-events-auto bg-red-500 justify-center h-fit align-middle m-1 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-red-400 hover:shadow-md hover:shadow-gray-500">
           <FiTrash className="m-2" color="#eeeeee" size="1.5em"></FiTrash>
@@ -251,22 +265,19 @@ function DeleteDialog({handleSubmit}: {handleSubmit?: () => void}) {
         <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-5 rounded-lg">
           <Dialog.Title className="text-xl font-bold text-gray-700 pb-2">Delete all moodboards!</Dialog.Title>
           <Dialog.Description className="text-md text-gray-500 py-2">Please be very sure you want to delete all moodboards!</Dialog.Description>
-          <form method="post" onSubmit={handleSubmit}>
-            <div className="flex justify-end">
-                
-                <button type="submit" className="block text-gray-500 bg-white justify-center align-middle m-2 p-2 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
-                  Cancel
-                </button>
-                <button type="submit" className="block text-gray-100 bg-red-500 justify-center align-middle m-2 p-2 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-red-400 hover:shadow-md hover:shadow-gray-500">
-                  Delete!
-                </button>
-            </div>
-          </form>
-           <Dialog.Close asChild>
-             <button className="block absolute top-2 right-2">
-               <FiX className="m-2" color="666666" size="1.2em"></FiX>
-             </button>
-           </Dialog.Close>
+          <div className="flex justify-end">
+            <button onClick={() => setOpen(false)} className="block text-gray-500 bg-white justify-center align-middle m-2 p-2 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
+              Cancel
+            </button>
+            <button onClick={onSubmit} className="block text-gray-100 bg-red-500 justify-center align-middle m-2 p-2 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-red-400 hover:shadow-md hover:shadow-gray-500">
+              Delete!
+            </button>
+          </div>
+          <Dialog.Close asChild>
+            <button className="block absolute top-2 right-2">
+              <FiX className="m-2" color="666666" size="1.2em"></FiX>
+            </button>
+          </Dialog.Close>
          </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
@@ -275,6 +286,7 @@ function DeleteDialog({handleSubmit}: {handleSubmit?: () => void}) {
 
 function UploadMoodboardDialog({handleSubmit}: {handleSubmit?: (arg0 : string) => void}) {
   const [file, setFile] = useState<File | null>(null);
+  const [open, setOpen] = useState<boolean>(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -304,12 +316,12 @@ function UploadMoodboardDialog({handleSubmit}: {handleSubmit?: (arg0 : string) =
       if (handleFileSubmit)
         fileReader.onloadend = handleFileSubmit;
       fileReader.readAsText(file)
-
+      setOpen(false);
     }
   };
 
   return (
-    <Dialog.Root>
+    <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
         <button className="block pointer-events-auto bg-white justify-center align-middle m-4 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
           <FiUpload className="m-2" color="#666666" size="1.5em"></FiUpload>
@@ -319,19 +331,17 @@ function UploadMoodboardDialog({handleSubmit}: {handleSubmit?: (arg0 : string) =
         <Dialog.Overlay className="fixed inset-0 bg-[#000000a9]"/>
         <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-5 rounded-lg">
           <Dialog.Title className="text-xl font-bold pr-10">Upload saved moodboards</Dialog.Title>
-          <form method="post" onSubmit={handleUpload}>
-            <fieldset className="py-2 flex justify-center">
-              <label htmlFor="moodboardFile" className="pr-2 py-2">
-                Add your file here!
-              </label>
-              <input id="moodboardFile" type="file" accept="application/JSON" onChange={handleFileChange} className="p-2 rounded-md flex outline-gray-400 outline-dashed outline-1 focus:outline focus:outline-2 focus:gray-600"/>
-            </fieldset>
-            <div className="flex justify-end">
-              <button type="submit" className="block bg-white justify-center align-middle m-2 p-2 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
-                Upload
-              </button>
-            </div>
-          </form>
+          <fieldset className="py-2 flex justify-center">
+            <label htmlFor="moodboardFile" className="pr-2 py-2">
+              Add your file here!
+            </label>
+            <input id="moodboardFile" type="file" accept="application/JSON" onChange={handleFileChange} className="p-2 rounded-md flex outline-gray-400 outline-dashed outline-1 focus:outline focus:outline-2 focus:gray-600"/>
+          </fieldset>
+          <div className="flex justify-end">
+            <button onClick={handleUpload} className="block bg-white justify-center align-middle m-2 p-2 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
+              Upload
+            </button>
+          </div>
            <Dialog.Close asChild>
              <button className="block absolute top-2 right-2">
                <FiX className="m-2" size="1.2em"></FiX>
@@ -341,8 +351,4 @@ function UploadMoodboardDialog({handleSubmit}: {handleSubmit?: (arg0 : string) =
       </Dialog.Portal>
     </Dialog.Root>
   )
-}
-
-interface Props {
-  handleSubmit?: FormEventHandler<HTMLFormElement>,
 }
