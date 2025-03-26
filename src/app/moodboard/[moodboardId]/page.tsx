@@ -227,13 +227,20 @@ export default function Home() {
         onDrop={onFileDrop}
         
       >
-        <RoundContainer hoverable={true}>
-          <Link href="/" className="block">
-            <div className="block h-max overflow-hidden">
-              <FiArrowLeft className="m-2" color="#666666" size="1.5em"></FiArrowLeft>
+        <div className="flex flex-row">
+          <RoundContainer hoverable={true}>
+            <Link href="/" className="block">
+              <div className="block h-max overflow-hidden">
+                <FiArrowLeft className="m-2" color="#666666" size="1.5em"></FiArrowLeft>
+              </div>
+            </Link>
+          </RoundContainer>
+          <RoundContainer>
+            <div className="m-2 mx-4 text-gray-500 max-w-sm text-ellipsis overflow-hidden text-nowrap">
+              {name}
             </div>
-          </Link>
-        </RoundContainer>
+          </RoundContainer>
+        </div>
         <div onMouseDown={(event) => {
           event.stopPropagation();
           event.nativeEvent.stopImmediatePropagation();
@@ -268,25 +275,36 @@ export default function Home() {
             </div>}
           </RoundContainer>
         </div>
-        <div className="">
-          <RoundContainer hoverable={true}>
-            <button className="block" onClick={() => moodboard?.saveMoodboardToLocalDb()}>
-              <FiSave className="m-2" color="#666666" size="1.5em"></FiSave>
-            </button>
+        <div className="flex flex-row items-start">
+          <RoundContainer className="opacity-0">
+            <div className="m-2 mx-4 text-gray-500 max-w-sm text-ellipsis overflow-hidden text-nowrap">
+              {name}
+            </div>
           </RoundContainer>
-          <RoundContainer hoverable={true}>
-            <button className="block" onClick={() => moodboard?.saveMoodboard()}>
-              <FiDownload className="m-2" color="#666666" size="1.5em"></FiDownload>
-            </button>
-          </RoundContainer>
-          <RenameDialog handleSubmit={(newName) => {
-            moodboard?.renameMoodboard(newName);
-            moodboard?.saveMoodboardToLocalDb();
-          }}
-          value={name}
-          setValue={setName}/>
+          <div className="">
+            <RoundContainer hoverable={true}>
+              <button className="block" onClick={() => moodboard?.saveMoodboardToLocalDb()}>
+                <FiSave className="m-2" color="#666666" size="1.5em"></FiSave>
+              </button>
+            </RoundContainer>
+            <RoundContainer hoverable={true}>
+              <button className="block" onClick={() => moodboard?.saveMoodboard()}>
+                <FiDownload className="m-2" color="#666666" size="1.5em"></FiDownload>
+              </button>
+            </RoundContainer>
+            <RenameDialog handleSubmit={(newName) => {
+                moodboard?.renameMoodboard(newName);
+                moodboard?.saveMoodboardToLocalDb();
+              }}
+              handleCancel={() => {
+                if (moodboard?.moodboardData.moodboardName)
+                  setName(moodboard?.moodboardData.moodboardName);
+              }}
+              value={name}
+              setValue={setName}
+            />
+          </div>
         </div>
-        
       </div>
       <canvas ref={canvasRef}
         style={{
@@ -306,7 +324,7 @@ export default function Home() {
   );
 }
 
-function RenameDialog({handleSubmit, value, setValue}: Props) {
+function RenameDialog({handleSubmit, handleCancel, value, setValue}: Props) {
   const [open, setOpen] = useState<boolean>(false);
   
   const handleSave = () => {
@@ -341,7 +359,7 @@ function RenameDialog({handleSubmit, value, setValue}: Props) {
             </button>
           </div>
            <Dialog.Close asChild>
-             <button className="block absolute top-2 right-2">
+             <button onClick={handleCancel} className="block absolute top-2 right-2">
                <FiX className="m-2" color="#666666" size="1.2em"></FiX>
              </button>
            </Dialog.Close>
@@ -353,6 +371,7 @@ function RenameDialog({handleSubmit, value, setValue}: Props) {
 
 interface Props {
   handleSubmit: (arg0: string) => void,
+  handleCancel: () => void,
   value: string,
   setValue: (arg0: string) => void,
 }
