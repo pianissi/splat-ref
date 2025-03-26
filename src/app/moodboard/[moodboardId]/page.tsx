@@ -1,14 +1,12 @@
 'use client'
-import { DragEvent, FormEventHandler, ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { resizeCanvasToDisplaySize } from "@/lib/webgl-utils";
+import { DragEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Moodboard, UNSELECTED } from "./moodboard";
-import { fromJSON } from "postcss";
 import Link from "next/link";
-import { FiArrowLeft, FiDownload, FiPlus, FiSave, FiX } from "react-icons/fi";
+import { FiArrowLeft, FiDownload, FiSave, FiX } from "react-icons/fi";
 import { RoundContainer } from "../../../components/RoundContainer";
 import { getMoodboard, initDb } from "@/api/moodboard";
-import { useParams, useRouter } from "next/navigation";
-import { isBrowser, isMobile } from "react-device-detect";
+import { useParams} from "next/navigation";
+import { isBrowser } from "react-device-detect";
 import { LuImageMinus, LuImagePlus } from "react-icons/lu";
 import { Dialog } from "radix-ui";
 import { MdOutlineDriveFileRenameOutline } from "react-icons/md";
@@ -21,12 +19,10 @@ export default function Home() {
 
   const params = useParams<{moodboardId: string}>();
   const [moodboard, setMoodboard] = useState<Moodboard | null>(null);
-  const [isTooltipEnabled, setIsTooltipEnabled] = useState<boolean>(true);
   const [selectedImageId, setSelectedImageId] = useState<number>(UNSELECTED);
   const [name, setName] = useState<string>("unassigned moodboard name");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const router = useRouter();
 
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -42,10 +38,20 @@ export default function Home() {
 
   useLayoutEffect(() => {
     // get moodboardId
-    setMoodboard(new Moodboard({"moodboardId": Number(params.moodboardId), "ownerId": -1, "moodboardName": name, "thumbnail": null}));
-  }, []);
+    setMoodboard(new Moodboard({"moodboardId": Number(params.moodboardId), "ownerId": -1, "moodboardName": "", "thumbnail": null}));
+  }, [params.moodboardId]);
 
   useEffect(() => {
+    const renderFrame = () => {
+      moodboard?.process();
+  
+      const id = moodboard?.getSelectedImageId();
+      if (id !== undefined)
+        setSelectedImageId(id);
+  
+  
+      requestAnimationFrame(renderFrame);
+    };
     if (canvasRef.current === null)
       return;
 
@@ -59,7 +65,6 @@ export default function Home() {
           return;
         
         setName(savedMoodboard.moodboardName);
-        console.log(name);
         console.log(savedMoodboard.moodboardName);
         if (!savedMoodboard.moodboardData) {
           moodboard.setMoodboardMetadata({"moodboardId": Number(params.moodboardId), "ownerId": -1, "moodboardName": savedMoodboard.moodboardName, "thumbnail": null});
@@ -80,7 +85,7 @@ export default function Home() {
 
       moodboard.unmount();
     }
-  }, [canvasRef, moodboard]);
+  }, [canvasRef, moodboard, params.moodboardId]);
 
   useEffect(() => {
     const onBeforeUnload = async (event: BeforeUnloadEvent) => {
@@ -103,19 +108,7 @@ export default function Home() {
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload, {capture: true});
     };
-  }, []);
-
-
-  const renderFrame = () => {
-    moodboard?.process();
-
-    const id = moodboard?.getSelectedImageId();
-    if (id !== undefined)
-      setSelectedImageId(id);
-
-
-    requestAnimationFrame(renderFrame);
-  };
+  }, [moodboard]);
 
   // useEffect(() => {
   const onDragOver = (e: DragEvent<HTMLElement>) => {
@@ -180,12 +173,7 @@ export default function Home() {
         moodboard.onImageLoad(image);
       });
       image.src = URL.createObjectURL(file);
-      console.log("wild")
-      // Now that the image has loaded make copy it to the texture.
-      
-      setIsTooltipEnabled(false);
-      // moodboard.onImageLoad(image);
-      renderFrame();
+      // renderFrame();
     }
   };
 
@@ -194,7 +182,7 @@ export default function Home() {
 
     if (moodboard !== null) {
       const reader = new FileReader();
-      reader.onloadend = function(e) {
+      reader.onloadend = function() {
         if (typeof this.result !== "string")
           return;
         // Now that the image has loaded make copy it to the texture.
@@ -203,7 +191,7 @@ export default function Home() {
       };
 
       reader.readAsText(file);
-      renderFrame();
+      // renderFrame();
     }
   };
 
@@ -276,7 +264,7 @@ export default function Home() {
                   >
                     <div className="w-1 rounded-md m-2 bg-gray-300"/>
                     <RoundContainer hoverable={true } className="m-2">
-                      <button className="block" onClick={(event) =>  {
+                      <button className="block" onClick={() =>  {
                         moodboard?.deleteImage(selectedImageId)
                       }}>
                         <LuImageMinus className="m-2" color="#666666" size="1.5em"></LuImageMinus>

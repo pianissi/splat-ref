@@ -9,7 +9,6 @@ import { MoodboardObject, updateMoodboard } from "@/api/moodboard";
 const RESERVED_ID_NUM = 100;
 
 export const UNSELECTED = 0;
-const BG_ID = 0;
 const TOP_LEFT_GIZMO_ID = 2;
 const TOP_RIGHT_GIZMO_ID = 3;
 const BOTTOM_LEFT_GIZMO_ID = 4;
@@ -288,7 +287,7 @@ class Moodboard {
       return;
 
     if ("thumbnail" in obj) {
-      this.loadImageSerial(obj.thumbnail, (imageElement, width, height, position, scale) => {
+      this.loadImageSerial(obj.thumbnail, (imageElement) => {
         this.moodboardData.thumbnail = imageElement;
       });
     }
@@ -370,7 +369,7 @@ class Moodboard {
   }
 
   unmount() {
-    this.inputComponent.remove(this);
+    this.inputComponent.remove();
     for (const [, image] of this.images)  {
       image.unmount();
     }
@@ -690,7 +689,7 @@ class MoodboardInputComponent {
   }
 
   
-  remove(moodboard: Moodboard) {
+  remove() {
 
     console.log("i am being removed");
     document.removeEventListener('pointerdown', this.handlePointerDown);

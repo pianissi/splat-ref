@@ -1,20 +1,15 @@
 'use client'
 import { addMoodboard, clearDb, getAllMoodboards, initDb, MoodboardObject, MoodboardMini, deleteMoodboard } from "@/api/moodboard";
-import { RoundContainer } from "@/components/RoundContainer";
-import { deleteDB } from "idb";
 import Link from "next/link";
-import { Dialog, DropdownMenu, Form } from "radix-ui";
-import { FormEvent, FormEventHandler, ReactElement, SyntheticEvent, useEffect, useState } from "react";
-import { FiMenu, FiMoreVertical, FiPlus, FiTrash, FiUpload, FiX } from "react-icons/fi";
-import { MoodboardSerial } from "./moodboard/[moodboardId]/types";
+import { Dialog, DropdownMenu } from "radix-ui";
+import { FormEventHandler, ReactElement, SyntheticEvent, useEffect, useState } from "react";
+import { FiMoreVertical, FiPlus, FiTrash, FiUpload, FiX } from "react-icons/fi";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [moodboards, setMoodboards] = useState<MoodboardMini[]>([]);
-  const router = useRouter();
 
-  const moodboardsData = [];
+  const moodboardsData : React.JSX.Element[] = [];
   for (const moodboard of moodboards) {
     const loadMoodboard = (thumbnailUrl: string | undefined) => {
 
@@ -287,11 +282,11 @@ function UploadMoodboardDialog({handleSubmit}: {handleSubmit?: (arg0 : string) =
     }
   };
 
-  const handleUpload = (e: FormEvent<HTMLFormElement>) => {
+  const handleUpload = () => {
     if (file) {
       console.log('Uploading file...');
 
-      const handleFileSubmit = (e: ProgressEvent<FileReader>) => {
+      const handleFileSubmit = () => {
         const content = fileReader.result;
         console.log(content);
         if (!content)
