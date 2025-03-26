@@ -237,7 +237,7 @@ export default function Home() {
           event.nativeEvent.stopImmediatePropagation();
           console.log("stopping propogations");
         }}>
-          <RoundContainer className="flex flex-row m-1">
+          <RoundContainer className="flex flex-row">
             {isBrowser && <RoundContainer className="m-2">
               <div className="m-2 mx-4 text-gray-500" suppressHydrationWarning>
                 Drag and drop images to make your moodboard!
