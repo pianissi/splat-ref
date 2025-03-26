@@ -184,6 +184,7 @@ class Moodboard {
           reject();
           return;
         }
+        this.moodboardData.thumbnail?.remove();
         this.moodboardData.thumbnail = new Image();
         const url = URL.createObjectURL(blob);
   
@@ -281,15 +282,15 @@ class Moodboard {
     });
   }
 
-  saveMoodboard() {
-    this.toJson().then((json) => saveFile(json, "moodboard.json"));
+  async saveMoodboard() {
+    this.toJson().then((json) => saveFile(json, this.moodboardData.moodboardName + ".json"));
   }
 
   setMoodboardMetadata(moodboardData: MoodboardData) {
     this.moodboardData = moodboardData;
   }
 
-  saveMoodboardToLocalDb() {
+  async saveMoodboardToLocalDb() {
     this.toObj().then((obj) => {
       const data = JSON.stringify(<JSON><unknown>obj);
 
@@ -800,21 +801,19 @@ class MoodboardInputComponent {
   }
 
   onKeyDown(e: KeyboardEvent, moodboard: Moodboard) {
-    e.preventDefault();
-      
-      if (e.key === "Delete") {
-        if (moodboard.selectedImage === UNSELECTED)
-          return;
-        moodboard.images.delete(moodboard.selectedImage);
-        moodboard.renderOrder.pop();
+    if (e.key === "Delete") {
+      if (moodboard.selectedImage === UNSELECTED)
         return;
-      }
-      if (e.key === "s") {
-        moodboard.toJson().then((json) => saveFile(json, "moodboard.json"));
-        return;
-      }
-      
-      console.log('Pressed a key without a handler.');
+      moodboard.images.delete(moodboard.selectedImage);
+      moodboard.renderOrder.pop();
+      return;
+    }
+    if (e.key === "s") {
+      moodboard.saveMoodboard();
+      return;
+    }
+    
+    console.log('Pressed a key without a handler.');
   }
 
 }
