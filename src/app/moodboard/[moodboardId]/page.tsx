@@ -246,10 +246,11 @@ export default function Home() {
             </RoundContainer>}
             <RoundContainer hoverable={true} className="m-2">
               <input type="file" id="imageFile" className="absolute opacity-0 w-0 h-0" accept="image/png image/jpeg" onChange={handleImageFileChange}/>
-              <label htmlFor="imageFile" className="block">
+              <label htmlFor="imageFile" className="block overflow-hidden cursor-pointer">
                 <LuImagePlus className="m-2" color="#666666" size="1.5em"></LuImagePlus>
               </label>
             </RoundContainer>
+            
             
             {selectedImageId !== UNSELECTED && <div className="flex flex-row">
               <div className="w-1 rounded-md m-2 bg-gray-300"/>
