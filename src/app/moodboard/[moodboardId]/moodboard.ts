@@ -1,5 +1,5 @@
 import { resizeCanvasToDisplaySize } from "@/lib/webgl-utils";
-import { borderFs, borderVs, defaultFs, defaultVs, framebufferFs, framebufferVs, initShaderProgram } from "./shaders";
+import { bgFs, bgVs, borderFs, borderVs, defaultFs, defaultVs, framebufferFs, framebufferVs, initShaderProgram } from "./shaders";
 import { mat3, vec3 } from "gl-matrix";
 import { ImageSerial, MoodboardData, MoodboardSerial, Mouse, Vector2 } from "./types";
 import { MoodboardImage } from "./image";
@@ -9,11 +9,14 @@ import { MoodboardObject, updateMoodboard } from "@/api/moodboard";
 const RESERVED_ID_NUM = 100;
 
 export const UNSELECTED = 0;
-
+const BG_ID = 0;
 const TOP_LEFT_GIZMO_ID = 2;
 const TOP_RIGHT_GIZMO_ID = 3;
 const BOTTOM_LEFT_GIZMO_ID = 4;
 const BOTTOM_RIGHT_GIZMO_ID = 5;
+
+const BG_SIZE = 10000000;
+const MAX_ZOOM_LIMIT = 70;
 
 const GIZMO_SIZE = 20;
 
@@ -64,6 +67,7 @@ class Moodboard {
 
   images = new Map<number, MoodboardImage>();
   gizmos : MoodboardImage[];
+  bg?: MoodboardImage;
 
   renderOrder: number[];
 
@@ -114,6 +118,13 @@ class Moodboard {
     this.gizmos.push(new MoodboardImage(GIZMO_SIZE, GIZMO_SIZE, {x: 0, y: 0}, shaderProgram, this.gl, BOTTOM_LEFT_GIZMO_ID));
     this.gizmos.push(new MoodboardImage(GIZMO_SIZE, GIZMO_SIZE, {x: 0, y: 0}, shaderProgram, this.gl, BOTTOM_RIGHT_GIZMO_ID));
 
+    shaderProgram = initShaderProgram(this.gl, bgVs, bgFs);
+    if (shaderProgram === null || shaderProgram === undefined)
+      return;
+
+    this.shaderPrograms.set("bg", shaderProgram);
+    this.bg = new MoodboardImage(BG_SIZE, BG_SIZE, {x: -BG_SIZE/2, y: -BG_SIZE/2}, shaderProgram, this.gl, UNSELECTED);
+
     this.renderComponent.setup(this);
     this.inputComponent.setup(this);
   }
@@ -155,6 +166,7 @@ class Moodboard {
 
   setCameraAttributes(cameraPosition : Vector2, zoomLinear: number) {
     this.cameraPosition = cameraPosition;
+    this.zoomLinear = zoomLinear;
     this.cameraScale.x = Math.exp(zoomLinear * 0.1);
     this.cameraScale.y = this.cameraScale.x;
   }
@@ -520,6 +532,10 @@ class MoodboardRenderComponent {
     if (borderShader === null || borderShader === undefined)
       return;
 
+    const bgShader = moodboard.shaderPrograms.get("bg")
+    if (bgShader === null || bgShader === undefined)
+      return;
+
     const cameraScaleMatrix = mat3.fromValues(
       moodboard.cameraScale.x, 0, 0,
       0, moodboard.cameraScale.y, 0,
@@ -542,6 +558,8 @@ class MoodboardRenderComponent {
     moodboard.gl.clearBufferfv(moodboard.gl.COLOR, 0, new Float32Array([ 0.8, 0.8, 0.8, 1.0 ]));
     moodboard.gl.clearBufferiv(moodboard.gl.COLOR, 1, new Int16Array([ UNSELECTED,UNSELECTED,UNSELECTED,UNSELECTED ]));
     moodboard.gl.clear(moodboard.gl.COLOR_BUFFER_BIT | moodboard.gl.DEPTH_BUFFER_BIT);
+
+    moodboard.bg?.render(moodboard.gl, moodboard.cameraProjectionMatrix, bgShader);
 
     for (const imageId of moodboard.renderOrder) {
       const image = moodboard.images.get(imageId);
@@ -915,10 +933,14 @@ class MoodboardInputComponent {
     preZoom[1] = (zoomOrigin.y / moodboard.cameraScale.y - moodboard.cameraPosition.y);
 
     // we compute zoom here
-    moodboard.zoomLinear += zoomDelta;
-    moodboard.cameraScale.x = Math.exp(moodboard.zoomLinear * 0.1);
-    moodboard.cameraScale.y = moodboard.cameraScale.x;
-
+    if ((moodboard.zoomLinear + zoomDelta) > -MAX_ZOOM_LIMIT) {
+      console.log(moodboard.zoomLinear);
+      moodboard.zoomLinear += zoomDelta;
+      moodboard.cameraScale.x = Math.exp(moodboard.zoomLinear * 0.1);
+      moodboard.cameraScale.y = moodboard.cameraScale.x;
+    } else {
+      return;
+    }
     const postZoom = vec3.create();
 
     postZoom[0] = (zoomOrigin.x / moodboard.cameraScale.x - moodboard.cameraPosition.x);

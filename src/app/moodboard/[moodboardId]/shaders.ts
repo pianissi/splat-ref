@@ -178,4 +178,61 @@ const borderFs = `#version 300 es
   }
 `;
 
-export { initShaderProgram, defaultVs, defaultFs, framebufferVs, framebufferFs, borderVs, borderFs};
+const bgVs = `#version 300 es
+  layout (location = 0) in vec2 a_position;
+  layout (location = 1) in vec2 a_texcoord;
+
+  uniform vec2 u_resolution;
+
+  uniform mat3 u_objectMatrix;
+  uniform mat3 u_cameraMatrix;
+
+  out vec2 texCoord;
+
+  void main() {
+    texCoord = a_texcoord;
+        // convert the position from pixels to 0.0 to 1.0
+    vec2 position = (u_objectMatrix * vec3(a_position, 1)).xy;
+
+    vec2 cameraSpace = (u_cameraMatrix * vec3(position,1 )).xy;
+    
+    vec2 zeroToOne = cameraSpace / u_resolution;
+
+    // convert from 0->1 to 0->2
+    vec2 zeroToTwo = zeroToOne * 2.0;
+
+    // convert from 0->2 to -1->+1 (clip space)
+    vec2 clipSpace = zeroToTwo - 1.0;
+
+    
+
+    gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+  }
+`;
+const bgFs = `#version 300 es
+  precision highp float;
+  precision mediump int;
+
+  in vec2 texCoord;
+
+  layout (location=0) out vec4 outColor;
+  layout (location=1) out int id;
+
+  uniform sampler2D ourTexture;
+
+  uniform int u_id; 
+
+  void main() {
+    vec2 lineWidth = vec2(0.02, 0.02);
+    vec2 lineAA = vec2(0.02, 0.02);
+    vec2 lineUV = abs(fract(texCoord * 30000.0) * 2.0 - 1.0);
+
+    vec2 line = smoothstep(lineWidth + lineAA, lineWidth - lineAA, lineUV);
+    float grid = (1.0 - clamp(line.x + line.y, 0.0, 1.0)) * 0.1 + 0.7;
+
+    outColor = vec4(grid, grid, grid, 1.0);
+    id = u_id;
+  }
+`;
+
+export { initShaderProgram, defaultVs, defaultFs, framebufferVs, framebufferFs, borderVs, borderFs, bgVs, bgFs};
