@@ -13,11 +13,14 @@ export interface ImageSerial {
 }
 
 export interface MoodboardSerial {
-  images: ImageSerial[];
+  images: ImageSerial[],
   id: number,
   name: string,
   ownerId: number,
-  thumbnail: ImageSerial;
+  thumbnail: ImageSerial,
+  cameraPosition: Vector2,
+  cameraScale: Vector2,
+  zoomLinear: number,
 }
 
 export interface Mouse {

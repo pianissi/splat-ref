@@ -1,15 +1,17 @@
 'use client'
-import { DragEvent, ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { DragEvent, FormEventHandler, ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { resizeCanvasToDisplaySize } from "@/lib/webgl-utils";
 import { Moodboard, UNSELECTED } from "./moodboard";
 import { fromJSON } from "postcss";
 import Link from "next/link";
-import { FiArrowLeft, FiDownload, FiSave } from "react-icons/fi";
+import { FiArrowLeft, FiDownload, FiPlus, FiSave, FiX } from "react-icons/fi";
 import { RoundContainer } from "../../../components/RoundContainer";
 import { getMoodboard, initDb } from "@/api/moodboard";
 import { useParams, useRouter } from "next/navigation";
 import { isBrowser, isMobile } from "react-device-detect";
 import { LuImageMinus, LuImagePlus } from "react-icons/lu";
+import { Dialog } from "radix-ui";
+import { MdOutlineDriveFileRenameOutline } from "react-icons/md";
 
 
 
@@ -20,6 +22,7 @@ export default function Home() {
   const [moodboard, setMoodboard] = useState<Moodboard | null>(null);
   const [isTooltipEnabled, setIsTooltipEnabled] = useState<boolean>(true);
   const [selectedImageId, setSelectedImageId] = useState<number>(UNSELECTED);
+  const [name, setName] = useState<string>("unassigned moodboard name");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const router = useRouter();
@@ -38,7 +41,7 @@ export default function Home() {
 
   useLayoutEffect(() => {
     // get moodboardId
-    setMoodboard(new Moodboard({"moodboardId": Number(params.moodboardId), "ownerId": -1, "moodboardName": "unassigned moodboard name", "thumbnail": null}));
+    setMoodboard(new Moodboard({"moodboardId": Number(params.moodboardId), "ownerId": -1, "moodboardName": name, "thumbnail": null}));
   }, []);
 
   useEffect(() => {
@@ -53,7 +56,10 @@ export default function Home() {
         const savedMoodboard = await getMoodboard(Number(params.moodboardId));
         if (!savedMoodboard)
           return;
-
+        
+        setName(savedMoodboard.moodboardName);
+        console.log(name);
+        console.log(savedMoodboard.moodboardName);
         if (!savedMoodboard.moodboardData) {
           moodboard.setMoodboardMetadata({"moodboardId": Number(params.moodboardId), "ownerId": -1, "moodboardName": savedMoodboard.moodboardName, "thumbnail": null});
           return;
@@ -74,11 +80,6 @@ export default function Home() {
       moodboard.unmount();
     }
   }, [canvasRef, moodboard]);
-
-  useEffect(() => {
-    
-    
-  }, [moodboard?.selectedImage]);
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -273,6 +274,12 @@ export default function Home() {
               <FiDownload className="m-2" color="#666666" size="1.5em"></FiDownload>
             </button>
           </RoundContainer>
+          <RenameDialog handleSubmit={(newName) => {
+            moodboard?.renameMoodboard(newName);
+            moodboard?.saveMoodboardToLocalDb();
+          }}
+          value={name}
+          setValue={setName}/>
         </div>
         
       </div>
@@ -292,4 +299,55 @@ export default function Home() {
     </div>
     
   );
+}
+
+function RenameDialog({handleSubmit, value, setValue}: Props) {
+  const [open, setOpen] = useState<boolean>(false);
+  
+  const handleSave = () => {
+    if (value) {
+      console.log('Renaming');
+      if (handleSubmit)
+        handleSubmit(value)
+    }
+    setOpen(false);
+  };
+
+  return (
+    <Dialog.Root open={open} onOpenChange={setOpen}>
+      <Dialog.Trigger asChild>
+        <button className="block bg-white justify-center align-middle m-4 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
+          <MdOutlineDriveFileRenameOutline className="m-2" color="#666666" size="1.5em"></MdOutlineDriveFileRenameOutline>
+        </button>
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-[#000000a9] z-10"/>
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-5 rounded-lg z-10">
+          <Dialog.Title className="text-xl font-bold text-gray-700">Rename moodboard</Dialog.Title>
+          <fieldset className="py-2 flex">
+            <label htmlFor="name" className="pr-2 py-2 text-gray-500">
+              Name
+            </label>
+            <input id="name" value={value} onChange={e => setValue(e.target.value)} className="unset p-2 rounded-md flex outline-gray-400 text-gray-500 outline-dashed outline-1 focus:outline focus:outline-2 focus:gray-600"/>
+          </fieldset>
+          <div className="flex justify-end">
+            <button onClick={handleSave} className="block text-gray-500 bg-white justify-center align-middle m-2 p-2 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
+              Save
+            </button>
+          </div>
+           <Dialog.Close asChild>
+             <button className="block absolute top-2 right-2">
+               <FiX className="m-2" color="#666666" size="1.2em"></FiX>
+             </button>
+           </Dialog.Close>
+         </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
+}
+
+interface Props {
+  handleSubmit: (arg0: string) => void,
+  value: string,
+  setValue: (arg0: string) => void,
 }

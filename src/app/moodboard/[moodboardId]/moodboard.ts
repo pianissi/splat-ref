@@ -77,6 +77,10 @@ class Moodboard {
     this.moodboardData = moodboardData;
   }
 
+  renameMoodboard(name: string) {
+    this.moodboardData.moodboardName = name;
+  }
+
   getSelectedImageId() {
     return this.selectedImage;
   }
@@ -147,6 +151,12 @@ class Moodboard {
 
     if (imageId === this.selectedImage)
       this.selectedImage = UNSELECTED;
+  }
+
+  setCameraAttributes(cameraPosition : Vector2, zoomLinear: number) {
+    this.cameraPosition = cameraPosition;
+    this.cameraScale.x = Math.exp(zoomLinear * 0.1);
+    this.cameraScale.y = this.cameraScale.x;
   }
 
   async toImageSerial(image: HTMLImageElement | null, width: number, height: number, position: Vector2, scale: Vector2) {
@@ -240,6 +250,9 @@ class Moodboard {
       "thumbnail": thumbnailData,
       "name": this.moodboardData.moodboardName,
       "ownerId": this.moodboardData.ownerId,
+      "cameraPosition": this.cameraPosition,
+      "cameraScale": this.cameraScale,
+      "zoomLinear": this.zoomLinear,
     };
   }
 
@@ -261,6 +274,18 @@ class Moodboard {
     // if ("id" in obj) {
     //   this.moodboardData.moodboardId = obj.id;
     // }
+
+    if ("cameraPosition" in obj) {
+      this.cameraPosition = obj.cameraPosition;
+    }
+
+    if ("cameraScale" in obj) {
+      this.cameraScale = obj.cameraScale;
+    }
+
+    if ("zoomLinear" in obj) {
+      this.zoomLinear = obj.zoomLinear;
+    }
 
     if ("name" in obj) {
       this.moodboardData.moodboardName = obj.name;
@@ -819,10 +844,10 @@ class MoodboardInputComponent {
       moodboard.deleteImage(moodboard.selectedImage);
       return;
     }
-    if (e.key === "s") {
-      moodboard.saveMoodboard();
-      return;
-    }
+    // if (e.key === "s") {
+    //   moodboard.saveMoodboard();
+    //   return;
+    // }
   }
 
 }
