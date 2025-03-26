@@ -13,7 +13,7 @@ import { LuImageMinus, LuImagePlus } from "react-icons/lu";
 import { Dialog } from "radix-ui";
 import { MdOutlineDriveFileRenameOutline } from "react-icons/md";
 import { RiCrosshair2Line } from "react-icons/ri";
-
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 
 
 
@@ -246,34 +246,49 @@ export default function Home() {
           event.nativeEvent.stopImmediatePropagation();
           console.log("stopping propogations");
         }}>
-          <RoundContainer className="flex flex-row mx-0">
-            {/* {isBrowser && <RoundContainer className="m-2">
-              <div className="m-2 mx-4 text-gray-500" suppressHydrationWarning>
-                Drag and drop images to make your moodboard!
-              </div>
-            </RoundContainer>} */}
-            <RoundContainer hoverable={true} className="m-2">
-              <input type="file" id="imageFile" className="absolute opacity-0 w-0 h-0" accept="image/png image/jpeg" onChange={handleImageFileChange}/>
-              <label htmlFor="imageFile" className="block overflow-hidden cursor-pointer">
-                <LuImagePlus className="m-2" color="#666666" size="1.5em"></LuImagePlus>
-              </label>
-            </RoundContainer>
-            <RoundContainer hoverable={true} className="m-2">
-              <button className="block" onClick={() => moodboard?.setCameraAttributes({x: 0, y: 0}, 1)}>
-                <RiCrosshair2Line className="m-2" color="#666666" size="1.5em"></RiCrosshair2Line>
-              </button>
-            </RoundContainer>
-            {selectedImageId !== UNSELECTED && <div className="flex flex-row">
-              <div className="w-1 rounded-md m-2 bg-gray-300"/>
-              <RoundContainer hoverable={true } className="m-2">
-                <button className="block" onClick={(event) =>  {
-                  moodboard?.deleteImage(selectedImageId)
-                }}>
-                  <LuImageMinus className="m-2" color="#666666" size="1.5em"></LuImageMinus>
-                </button>
+          <LayoutGroup>
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} layout transition={{default: {ease: "easeIn"}, layout: { duration: 0.2 }}}>
+              <RoundContainer className="flex flex-row mx-0">
+                {/* {isBrowser && <RoundContainer className="m-2">
+                  <div className="m-2 mx-4 text-gray-500" suppressHydrationWarning>
+                    Drag and drop images to make your moodboard!
+                  </div>
+                </RoundContainer>} */}
+                <RoundContainer hoverable={true} className="m-2">
+                  <input type="file" id="imageFile" className="absolute opacity-0 w-0 h-0" accept="image/png image/jpeg" onChange={handleImageFileChange}/>
+                  <label htmlFor="imageFile" className="block overflow-hidden cursor-pointer">
+                    <LuImagePlus className="m-2" color="#666666" size="1.5em"></LuImagePlus>
+                  </label>
+                </RoundContainer>
+                <RoundContainer hoverable={true} className="m-2">
+                  <button className="block" onClick={() => moodboard?.setCameraAttributes({x: 0, y: 0}, 1)}>
+                    <RiCrosshair2Line className="m-2" color="#666666" size="1.5em"></RiCrosshair2Line>
+                  </button>
+                </RoundContainer>
+                <AnimatePresence mode={"popLayout"}>
+                  {selectedImageId !== UNSELECTED && <motion.div 
+                    exit={{ scale: 0 }} 
+                    initial={{ scale: 0 }} 
+                    animate={{ scale: 1 }} 
+                    transition={{default: { duration: 0.2 }}}
+                    className="flex flex-row"
+                    layout
+                  >
+                    <div className="w-1 rounded-md m-2 bg-gray-300"/>
+                    <RoundContainer hoverable={true } className="m-2">
+                      <button className="block" onClick={(event) =>  {
+                        moodboard?.deleteImage(selectedImageId)
+                      }}>
+                        <LuImageMinus className="m-2" color="#666666" size="1.5em"></LuImageMinus>
+                      </button>
+                    </RoundContainer>
+                  </motion.div>}
+                </AnimatePresence>
+              
               </RoundContainer>
-            </div>}
-          </RoundContainer>
+            </motion.div>
+          </LayoutGroup>
+            
         </div>
         <div className="flex flex-row items-start">
           {isBrowser && <RoundContainer className="opacity-0">
