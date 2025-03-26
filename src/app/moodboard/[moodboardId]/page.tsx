@@ -235,7 +235,7 @@ export default function Home() {
               </div>
             </Link>
           </RoundContainer>
-          {isBrowser && <RoundContainer>
+          {isBrowser && <RoundContainer className="mx-2 ml-0">
               <div className="m-2 mx-4 text-gray-500 max-w-sm text-ellipsis overflow-hidden text-nowrap" suppressHydrationWarning>
                 {name}
               </div>
