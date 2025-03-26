@@ -8,7 +8,7 @@ import { MoodboardObject, updateMoodboard } from "@/api/moodboard";
 
 const RESERVED_ID_NUM = 100;
 
-const UNSELECTED = 0;
+export const UNSELECTED = 0;
 
 const TOP_LEFT_GIZMO_ID = 2;
 const TOP_RIGHT_GIZMO_ID = 3;
@@ -77,6 +77,10 @@ class Moodboard {
     this.moodboardData = moodboardData;
   }
 
+  getSelectedImageId() {
+    return this.selectedImage;
+  }
+
   setup(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
 
@@ -133,6 +137,16 @@ class Moodboard {
 
     this.idCount += 1;
     console.log("image loaded");
+  }
+
+  deleteImage(imageId: number) {
+    console.log("deleting: " + imageId);
+    this.images.get(imageId)?.unmount();
+    this.images.delete(imageId);
+    this.renderOrder.filter((id) => {return id !== imageId});
+
+    if (imageId === this.selectedImage)
+      this.selectedImage = UNSELECTED;
   }
 
   async toImageSerial(image: HTMLImageElement | null, width: number, height: number, position: Vector2, scale: Vector2) {
@@ -244,10 +258,9 @@ class Moodboard {
         this.moodboardData.thumbnail = imageElement;
       });
     }
-
-    if ("id" in obj) {
-      this.moodboardData.moodboardId = obj.id;
-    }
+    // if ("id" in obj) {
+    //   this.moodboardData.moodboardId = obj.id;
+    // }
 
     if ("name" in obj) {
       this.moodboardData.moodboardName = obj.name;
@@ -406,7 +419,6 @@ class MoodboardRenderComponent {
     if (moodboard.gl === null)
       return;
 
-    console.log();
     const result = resizeCanvasToDisplaySize(moodboard.gl.canvas)
     if (result === false)
       return;
@@ -634,27 +646,27 @@ class MoodboardInputComponent {
 
   onMouseDown(event: MouseEvent, moodboard: Moodboard) {
     this.mouse.isDown = true;
-      this.mouse.position.x = event.pageX;
-      this.mouse.position.y = event.pageY;
-      this.mouse.delta = {x: 0, y: 0};
+    this.mouse.position.x = event.pageX;
+    this.mouse.position.y = event.pageY;
+    this.mouse.delta = {x: 0, y: 0};
 
-      moodboard.renderComponent.pickAt(moodboard, this.mouse.position);
+    moodboard.renderComponent.pickAt(moodboard, this.mouse.position);
 
-      if (moodboard.selectedIndex === UNSELECTED) {
-        moodboard.selectedImage = moodboard.selectedIndex;
-        return;
-      }
-      // move in render order
-      console.log(moodboard.renderOrder);
-      
-      if (moodboard.selectedIndex < RESERVED_ID_NUM)
-        return;
-
-      // set image!
+    if (moodboard.selectedIndex === UNSELECTED) {
       moodboard.selectedImage = moodboard.selectedIndex;
+      return;
+    }
+    // move in render order
+    console.log(moodboard.renderOrder);
+    
+    if (moodboard.selectedIndex < RESERVED_ID_NUM)
+      return;
 
-      moodboard.renderOrder.splice(moodboard.renderOrder.findIndex(index => index === moodboard.selectedIndex), 1);
-      moodboard.renderOrder.push(moodboard.selectedIndex);
+    // set image!
+    moodboard.selectedImage = moodboard.selectedIndex;
+
+    moodboard.renderOrder.splice(moodboard.renderOrder.findIndex(index => index === moodboard.selectedIndex), 1);
+    moodboard.renderOrder.push(moodboard.selectedIndex);
 
   }
 
@@ -804,16 +816,13 @@ class MoodboardInputComponent {
     if (e.key === "Delete") {
       if (moodboard.selectedImage === UNSELECTED)
         return;
-      moodboard.images.delete(moodboard.selectedImage);
-      moodboard.renderOrder.pop();
+      moodboard.deleteImage(moodboard.selectedImage);
       return;
     }
     if (e.key === "s") {
       moodboard.saveMoodboard();
       return;
     }
-    
-    console.log('Pressed a key without a handler.');
   }
 
 }

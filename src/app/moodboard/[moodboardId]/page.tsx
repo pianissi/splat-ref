@@ -1,13 +1,15 @@
 'use client'
 import { DragEvent, ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { resizeCanvasToDisplaySize } from "@/lib/webgl-utils";
-import { Moodboard } from "./moodboard";
+import { Moodboard, UNSELECTED } from "./moodboard";
 import { fromJSON } from "postcss";
 import Link from "next/link";
 import { FiArrowLeft, FiDownload, FiSave } from "react-icons/fi";
 import { RoundContainer } from "../../../components/RoundContainer";
 import { getMoodboard, initDb } from "@/api/moodboard";
 import { useParams, useRouter } from "next/navigation";
+import { isBrowser, isMobile } from "react-device-detect";
+import { LuImageMinus, LuImagePlus } from "react-icons/lu";
 
 
 
@@ -17,9 +19,22 @@ export default function Home() {
   const params = useParams<{moodboardId: string}>();
   const [moodboard, setMoodboard] = useState<Moodboard | null>(null);
   const [isTooltipEnabled, setIsTooltipEnabled] = useState<boolean>(true);
+  const [selectedImageId, setSelectedImageId] = useState<number>(UNSELECTED);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const router = useRouter();
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      // setImageFile(e.target.files[0]);
+      const imageFile = e.target.files[0];
+      if (!imageFile) {
+        return;
+      }
+      if (imageFile.type === "image/png" || imageFile.type === "image/jpeg")
+        handleImage(imageFile);
+    }
+  };
 
   useLayoutEffect(() => {
     // get moodboardId
@@ -33,17 +48,6 @@ export default function Home() {
     if (moodboard?.canvas === null) {
   
       moodboard?.setup(canvasRef.current);
-
-      // load image
-      // const image = new Image();
-
-      // console.log("imaging");
-
-      // image.src = "http://localhost:3000/f-texture.png"
-      // image.addEventListener('load', function() {
-      //   // Now that the image has loaded make copy it to the texture.
-      //   moodboard.onImageLoad(image);
-      // });
       const init = async () => {
         await initDb();
         const savedMoodboard = await getMoodboard(Number(params.moodboardId));
@@ -54,9 +58,6 @@ export default function Home() {
           moodboard.setMoodboardMetadata({"moodboardId": Number(params.moodboardId), "ownerId": -1, "moodboardName": savedMoodboard.moodboardName, "thumbnail": null});
           return;
         }
-
-        let json = JSON.parse(savedMoodboard.moodboardData);
-        
         moodboard.fromJSON(JSON.parse(savedMoodboard.moodboardData));
         
       }
@@ -73,6 +74,11 @@ export default function Home() {
       moodboard.unmount();
     }
   }, [canvasRef, moodboard]);
+
+  useEffect(() => {
+    
+    
+  }, [moodboard?.selectedImage]);
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -100,6 +106,11 @@ export default function Home() {
 
   const renderFrame = () => {
     moodboard?.process();
+
+    const id = moodboard?.getSelectedImageId();
+    if (id !== undefined)
+      setSelectedImageId(id);
+
 
     requestAnimationFrame(renderFrame);
   };
@@ -212,28 +223,54 @@ export default function Home() {
         onDragOver={onDragOver}
         onDragEnter={onDragEnter}
         onDrop={onFileDrop}
+        
       >
         <RoundContainer hoverable={true}>
           <Link href="/" className="block">
             <div className="block h-max overflow-hidden">
-              <FiArrowLeft className="m-2" size="1.5em"></FiArrowLeft>
+              <FiArrowLeft className="m-2" color="#666666" size="1.5em"></FiArrowLeft>
             </div>
           </Link>
         </RoundContainer>
-        {isTooltipEnabled && <RoundContainer>
-          <div className="m-2 mx-4">
-            Drag and drop your images to make your moodboard!
-          </div>
-        </RoundContainer>}
+        <div onMouseDown={(event) => {
+          event.stopPropagation();
+          event.nativeEvent.stopImmediatePropagation();
+          console.log("stopping propogations");
+        }}>
+          <RoundContainer className="flex flex-row m-1">
+            {isBrowser && <RoundContainer className="m-2">
+              <div className="m-2 mx-4 text-gray-500" suppressHydrationWarning>
+                Drag and drop images to make your moodboard!
+              </div>
+            </RoundContainer>}
+            <RoundContainer hoverable={true} className="m-2">
+              <input type="file" id="imageFile" className="absolute opacity-0 w-0 h-0" accept="image/png image/jpeg" onChange={handleImageFileChange}/>
+              <label htmlFor="imageFile" className="block">
+                <LuImagePlus className="m-2" color="#666666" size="1.5em"></LuImagePlus>
+              </label>
+            </RoundContainer>
+            
+            {selectedImageId !== UNSELECTED && <div className="flex flex-row">
+              <div className="w-1 rounded-md m-2 bg-gray-300"/>
+              <RoundContainer hoverable={true } className="m-2">
+                <button className="block" onClick={(event) =>  {
+                  moodboard?.deleteImage(selectedImageId)
+                }}>
+                  <LuImageMinus className="m-2" color="#666666" size="1.5em"></LuImageMinus>
+                </button>
+              </RoundContainer>
+            </div>}
+          </RoundContainer>
+        </div>
         <div className="">
           <RoundContainer hoverable={true}>
             <button className="block" onClick={() => moodboard?.saveMoodboardToLocalDb()}>
-              <FiSave className="m-2" size="1.5em"></FiSave>
+              <FiSave className="m-2" color="#666666" size="1.5em"></FiSave>
             </button>
           </RoundContainer>
           <RoundContainer hoverable={true}>
             <button className="block" onClick={() => moodboard?.saveMoodboard()}>
-              <FiDownload className="m-2" size="1.5em"></FiDownload>
+              <FiDownload className="m-2" color="#666666" size="1.5em"></FiDownload>
             </button>
           </RoundContainer>
         </div>
@@ -241,6 +278,9 @@ export default function Home() {
       </div>
       <canvas ref={canvasRef}
         style={{
+            position: "absolute",
+            top: "0",
+            right: "0",
             height: "100vh",
             width: "100vw",
             overflow: "hidden"
