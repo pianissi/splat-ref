@@ -7,19 +7,37 @@ import { Dialog, Form } from "radix-ui";
 import { FormEvent, FormEventHandler, ReactElement, SyntheticEvent, useEffect, useState } from "react";
 import { FiPlus, FiTrash, FiUpload, FiX } from "react-icons/fi";
 import { MoodboardSerial } from "./moodboard/[moodboardId]/types";
+import Image from "next/image";
 
 export default function Home() {
   const [moodboards, setMoodboards] = useState<MoodboardMini[]>([]);
 
   const moodboardsData = [];
   for (const moodboard of moodboards) {
-    moodboardsData.push(
-      <MoodboardLink key={moodboard.moodboardId} moodboardId={moodboard.moodboardId}>
-        <div className="text-gray-500">
-          {moodboard.moodboardName}
-        </div>
-      </MoodboardLink>
-    );
+    const loadMoodboard = (thumbnailUrl: string | undefined) => {
+
+      console.log(thumbnailUrl);
+      moodboardsData.push(
+        <MoodboardLink key={moodboard.moodboardId} moodboardId={moodboard.moodboardId}>
+          <div className="max-w-24 lg:max-w-sm overflow-hidden">
+            <div className="text-gray-500 text-nowrap text-ellipsis overflow-hidden text-lg">
+              {moodboard.moodboardName}
+              
+            </div>
+            <div className="my-4"/>
+            <div className="rounded-lg overflow-hidden max-h-28 lg:max-h-44">
+              {thumbnailUrl ?
+                <Image alt="" src={thumbnailUrl} height={500} width={500} className=""/> :
+                <div className="bg-gray-200 h-56 w-screen">
+                </div>
+              }
+            </div>
+          </div>
+        </MoodboardLink>
+      );
+    }
+
+    loadMoodboard(moodboard.thumbnailUrl);
   }
 
   useEffect(() => {
@@ -33,21 +51,44 @@ export default function Home() {
       if (moodboards === null)
         return;
       const moodboardsData : MoodboardMini[] = [];
+      const promises : Promise<void>[] = [];
       for (const moodboard of moodboards) {
         let id = 0;
         if (!moodboard.moodboardId)
           id = -1;
         else 
           id = moodboard.moodboardId;
-        const moodboardData = {
-          moodboardId: id,
-          moodboardName: moodboard.moodboardName,
-          thumbnail: moodboard.thumbnail,
+
+        if (moodboard.thumbnail) {
+          promises.push(fetch(moodboard.thumbnail.data).then(res => res.blob()).then((myBlob) => {
+            const objectURL = URL.createObjectURL(myBlob);
+            console.log("logigng");
+            console.log(objectURL);
+            console.log(moodboard.thumbnail?.data);
+            const moodboardData = {
+              moodboardId: id,
+              moodboardName: moodboard.moodboardName,
+              thumbnailUrl: objectURL,
+            }
+            moodboardsData.push(moodboardData);
+          }));
+        } else {
+          const moodboardData = {
+            moodboardId: id,
+            moodboardName: moodboard.moodboardName,
+          }
+          moodboardsData.push(moodboardData);
         }
-
-        moodboardsData.push(moodboardData);
+        
       }
-
+      await Promise.all(promises);
+      moodboards.sort((a, b) => {
+        if (a.moodboardId && b.moodboardId)
+          if (a.moodboardId < b.moodboardId)
+            return 1;
+          return -1;
+        return 1;
+      })
       setMoodboards(moodboardsData);
     }
 
@@ -100,28 +141,34 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col justify-start h-dvh w-dvw bg-gray-100">
-      <div className="flex px-2 justify-between items-center bg-gray-100 shadow-md border-b border-gray-300">
-        <div className="text-2xl m-4 font-bold h-fit w-auto text-gray-700">
-          Your Moodboards
-        </div>
-        <RoundContainer hoverable={true}>
-          <div className="m-2 text-gray-700">
-            Login
+    <div>
+      <div className="flex flex-col justify-start h-dvh w-dvw bg-gray-100">
+        <div className="flex px-2 justify-between items-center bg-gray-100 shadow-md border-b border-gray-300">
+          <div className="text-2xl m-4 font-bold h-fit w-auto text-gray-700">
+            Your Moodboards
           </div>
-        </RoundContainer>
-      </div>
-      <div className="flex flex-col p-4 justify-between h-full">
-        <div className="flex p-4">
-          {moodboardsData}
+          <RoundContainer hoverable={true}>
+            <div className="m-2 text-gray-700">
+              Login
+            </div>
+          </RoundContainer>
         </div>
+        <div className="flex flex-col justify-between flex-1 min-w-0 min-h-0">
+          <div className="flex flex-wrap p-6 overflow-auto">
+            {moodboardsData ?
+              moodboardsData :
+              <div>Loading</div>
+            }
+          </div>
+        </div>
+      </div>
+      <div className="absolute top-0 right-0 h-dvh w-dvh flex flex-col-reverse p-4 z-10 pointer-events-none">
         <div className="flex flex-row-reverse items-baseline">
           <MoodboardDialog handleSubmit={handleAddMoodboard}/>
           <UploadMoodboardDialog handleSubmit={handleUploadMoodboard}></UploadMoodboardDialog>
           <DeleteDialog handleSubmit={() => {
             clearDb();
           }}/>
-          
         </div>
       </div>
     </div>
@@ -130,7 +177,7 @@ export default function Home() {
 
 function MoodboardLink({children, moodboardId}: {children: ReactElement, moodboardId: number}) {
   return (
-    <Link className="m-2 h-fit flex shrink-0 p-6 shadow-gray-300 bg-white rounded-xl shadow-lg justify-center transition hover:bg-slate-200 hover:shadow-xl hover:shadow-gray-400" href={`/moodboard/${moodboardId.toString()}`}>
+    <Link className="m-2 h-fit flex shrink-0 p-4 lg:p-6 shadow-gray-300 bg-white rounded-xl shadow-lg justify-center transition hover:bg-slate-200 hover:shadow-xl hover:shadow-gray-400" href={`/moodboard/${moodboardId.toString()}`}>
       {children}
     </Link>
   );
@@ -140,7 +187,7 @@ function MoodboardDialog({handleSubmit}: Props) {
   return (
     <Dialog.Root>
       <Dialog.Trigger asChild>
-        <button className="block bg-white justify-center align-middle m-4 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
+        <button className="block pointer-events-auto bg-white justify-center align-middle m-4 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
           <FiPlus className="m-2" color="#666666" size="4em"></FiPlus>
         </button>
       </Dialog.Trigger>
@@ -176,7 +223,7 @@ function DeleteDialog({handleSubmit}: {handleSubmit?: () => void}) {
   return (
     <Dialog.Root>
       <Dialog.Trigger asChild>
-        <button className="block bg-red-500 justify-center h-fit align-middle m-1 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
+        <button className="block pointer-events-auto bg-red-500 justify-center h-fit align-middle m-1 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
           <FiTrash className="m-2" color="#eeeeee" size="1.5em"></FiTrash>
         </button>
       </Dialog.Trigger>
@@ -245,7 +292,7 @@ function UploadMoodboardDialog({handleSubmit}: {handleSubmit?: (arg0 : string) =
   return (
     <Dialog.Root>
       <Dialog.Trigger asChild>
-        <button className="block bg-white justify-center align-middle m-4 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
+        <button className="block pointer-events-auto bg-white justify-center align-middle m-4 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
           <FiUpload className="m-2" color="#666666" size="1.5em"></FiUpload>
         </button>
       </Dialog.Trigger>

@@ -235,11 +235,11 @@ export default function Home() {
               </div>
             </Link>
           </RoundContainer>
-          <RoundContainer>
-            <div className="m-2 mx-4 text-gray-500 max-w-sm text-ellipsis overflow-hidden text-nowrap">
-              {name}
-            </div>
-          </RoundContainer>
+          {isBrowser && <RoundContainer>
+              <div className="m-2 mx-4 text-gray-500 max-w-sm text-ellipsis overflow-hidden text-nowrap">
+                {name}
+              </div>
+            </RoundContainer>}
         </div>
         <div onMouseDown={(event) => {
           event.stopPropagation();
@@ -247,11 +247,11 @@ export default function Home() {
           console.log("stopping propogations");
         }}>
           <RoundContainer className="flex flex-row">
-            {isBrowser && <RoundContainer className="m-2">
+            {/* {isBrowser && <RoundContainer className="m-2">
               <div className="m-2 mx-4 text-gray-500" suppressHydrationWarning>
                 Drag and drop images to make your moodboard!
               </div>
-            </RoundContainer>}
+            </RoundContainer>} */}
             <RoundContainer hoverable={true} className="m-2">
               <input type="file" id="imageFile" className="absolute opacity-0 w-0 h-0" accept="image/png image/jpeg" onChange={handleImageFileChange}/>
               <label htmlFor="imageFile" className="block overflow-hidden cursor-pointer">
@@ -276,11 +276,11 @@ export default function Home() {
           </RoundContainer>
         </div>
         <div className="flex flex-row items-start">
-          <RoundContainer className="opacity-0">
+          {isBrowser && <RoundContainer>
             <div className="m-2 mx-4 text-gray-500 max-w-sm text-ellipsis overflow-hidden text-nowrap">
               {name}
             </div>
-          </RoundContainer>
+          </RoundContainer>}
           <div className="">
             <RoundContainer hoverable={true}>
               <button className="block" onClick={() => moodboard?.saveMoodboardToLocalDb()}>

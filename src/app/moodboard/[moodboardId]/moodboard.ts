@@ -91,7 +91,7 @@ class Moodboard {
     if (this.canvas === null)
       return;
 
-    this.gl = this.canvas.getContext("webgl2");
+    this.gl = this.canvas.getContext("webgl2", { preserveDrawingBuffer: true});
     
     if (this.gl === null)
       return;
@@ -203,21 +203,25 @@ class Moodboard {
 
     await new Promise(async (resolve, reject) => {
       this.canvas?.toBlob((blob) => {
+        
+        this.moodboardData.thumbnail?.remove();
         if (blob === null) {
           console.log("huh?")
           reject();
           return;
         }
-        this.moodboardData.thumbnail?.remove();
         this.moodboardData.thumbnail = new Image();
         const url = URL.createObjectURL(blob);
+        console.log("blobbing");
+        console.log(blob)
   
-        this.moodboardData.thumbnail.onload = () => {
+        this.moodboardData.thumbnail.addEventListener('load', () => {
           resolve(true);
-        }
+        });
 
         this.moodboardData.thumbnail.src = url;
-      }, "image/jpeg", 0.95);
+        document.body.appendChild(this.moodboardData.thumbnail);
+      }, "image/png");
     });
 
     for (const [, image] of this.images) {
@@ -242,6 +246,11 @@ class Moodboard {
         thumbnailData = imagePromise;
       })
     }
+
+    console.log(thumbnailData);
+
+    
+    this.moodboardData.thumbnail?.remove();
 
     return {
       "version": VERSION,

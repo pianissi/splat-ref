@@ -1,9 +1,11 @@
+import { ImageSerial } from '@/app/moodboard/[moodboardId]/types';
 import { openDB, deleteDB, wrap, unwrap, DBSchema, IDBPDatabase } from 'idb';
 
 export interface MoodboardMini {
   moodboardId: number,
   moodboardName: string,
-  thumbnail?: string,
+  thumbnail?: ImageSerial,
+  thumbnailUrl?: string,
 }
 
 export interface MoodboardObject {
@@ -11,7 +13,7 @@ export interface MoodboardObject {
   moodboardName: string,
   moodboardData: string,
   ownerId?: number;
-  thumbnail?: string,
+  thumbnail?: ImageSerial,
 }
 
 interface MoodboardDB extends DBSchema {
