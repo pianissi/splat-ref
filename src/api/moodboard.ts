@@ -71,11 +71,11 @@ export async function updateMoodboard(moodboard: MoodboardObject) {
   return await db.put("moodboards", moodboardObject);
 }
 
-export async function deleteMoodboard(moodboardId: IDBKeyRange) {
+export async function deleteMoodboard(moodboardId: number) {
   if (db === null) {
     return null;
   }
-  return await db.delete("moodboards", moodboardId);
+  return await db.delete("moodboards", IDBKeyRange.only(moodboardId));
 }
 
 export async function clearDb() {

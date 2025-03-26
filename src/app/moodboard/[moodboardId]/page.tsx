@@ -83,7 +83,7 @@ export default function Home() {
   }, [canvasRef, moodboard]);
 
   useEffect(() => {
-    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+    const onBeforeUnload = async (event: BeforeUnloadEvent) => {
       event.preventDefault();
       
       
@@ -92,7 +92,7 @@ export default function Home() {
       }
   
       
-      moodboard.saveMoodboardToLocalDb();
+      await moodboard.saveMoodboardToLocalDb();
 
       moodboard.unmount();
       return (event.returnValue = '');
@@ -276,7 +276,7 @@ export default function Home() {
           </RoundContainer>
         </div>
         <div className="flex flex-row items-start">
-          {isBrowser && <RoundContainer>
+          {isBrowser && <RoundContainer className="opacity-0">
             <div className="m-2 mx-4 text-gray-500 max-w-sm text-ellipsis overflow-hidden text-nowrap">
               {name}
             </div>

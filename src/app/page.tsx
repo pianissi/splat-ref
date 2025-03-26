@@ -1,16 +1,18 @@
 'use client'
-import { addMoodboard, clearDb, getAllMoodboards, initDb, MoodboardObject, MoodboardMini } from "@/api/moodboard";
+import { addMoodboard, clearDb, getAllMoodboards, initDb, MoodboardObject, MoodboardMini, deleteMoodboard } from "@/api/moodboard";
 import { RoundContainer } from "@/components/RoundContainer";
 import { deleteDB } from "idb";
 import Link from "next/link";
-import { Dialog, Form } from "radix-ui";
+import { Dialog, DropdownMenu, Form } from "radix-ui";
 import { FormEvent, FormEventHandler, ReactElement, SyntheticEvent, useEffect, useState } from "react";
-import { FiPlus, FiTrash, FiUpload, FiX } from "react-icons/fi";
+import { FiMenu, FiMoreVertical, FiPlus, FiTrash, FiUpload, FiX } from "react-icons/fi";
 import { MoodboardSerial } from "./moodboard/[moodboardId]/types";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [moodboards, setMoodboards] = useState<MoodboardMini[]>([]);
+  const router = useRouter();
 
   const moodboardsData = [];
   for (const moodboard of moodboards) {
@@ -19,16 +21,38 @@ export default function Home() {
       console.log(thumbnailUrl);
       moodboardsData.push(
         <MoodboardLink key={moodboard.moodboardId} moodboardId={moodboard.moodboardId}>
-          <div className="max-w-24 lg:max-w-sm overflow-hidden">
-            <div className="text-gray-500 text-nowrap text-ellipsis overflow-hidden text-lg">
-              {moodboard.moodboardName}
-              
+          <div className="overflow-hidden">
+            <div className="flex justify-between">
+              <div className="text-gray-500 text-nowrap text-ellipsis overflow-hidden text-lg">
+                {moodboard.moodboardName}
+                
+              </div>
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
+                  <button className="rounded-lg transition focus:outline-none hover:bg-slate-300">
+                    <FiMoreVertical color="#666666" size="1em"/>
+                  </button>        
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content className="bg-white p-2 rounded-lg shadow-lg cursor-pointer">
+                    <DropdownMenu.Item onClick={async (event) => {
+                      event.stopPropagation();
+                      await initDb();
+                      deleteMoodboard(moodboard.moodboardId);
+                      window.location.reload();
+                    }} className="flex flex-row items-center gap-2 px-4 py-1 text-gray-500 rounded-md transition hover:bg-red-500 hover:text-white">
+                      Delete <FiTrash/>
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Arrow className="fill-white"/>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
             </div>
             <div className="my-4"/>
             <div className="rounded-lg overflow-hidden max-h-28 lg:max-h-44">
               {thumbnailUrl ?
                 <Image alt="" src={thumbnailUrl} height={500} width={500} className=""/> :
-                <div className="bg-gray-200 h-56 w-screen">
+                <div className="bg-gray-300 h-56 w-screen">
                 </div>
               }
             </div>
@@ -82,9 +106,9 @@ export default function Home() {
         
       }
       await Promise.all(promises);
-      moodboards.sort((a, b) => {
+      moodboardsData.sort((a, b) => {
         if (a.moodboardId && b.moodboardId)
-          if (a.moodboardId < b.moodboardId)
+          if (a.moodboardId > b.moodboardId)
             return 1;
           return -1;
         return 1;
@@ -154,7 +178,7 @@ export default function Home() {
           </RoundContainer>
         </div>
         <div className="flex flex-col justify-between flex-1 min-w-0 min-h-0">
-          <div className="flex flex-wrap p-6 overflow-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-4 p-6 overflow-auto">
             {moodboardsData ?
               moodboardsData :
               <div>Loading</div>
@@ -223,7 +247,7 @@ function DeleteDialog({handleSubmit}: {handleSubmit?: () => void}) {
   return (
     <Dialog.Root>
       <Dialog.Trigger asChild>
-        <button className="block pointer-events-auto bg-red-500 justify-center h-fit align-middle m-1 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-slate-200 hover:shadow-md hover:shadow-gray-500">
+        <button className="block pointer-events-auto bg-red-500 justify-center h-fit align-middle m-1 rounded-full shadow-sm border border-gray-300 shadow-gray-400 transition hover:bg-red-400 hover:shadow-md hover:shadow-gray-500">
           <FiTrash className="m-2" color="#eeeeee" size="1.5em"></FiTrash>
         </button>
       </Dialog.Trigger>
