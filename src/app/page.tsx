@@ -171,11 +171,11 @@ export default function Home() {
           <div className="text-2xl m-4 font-bold h-fit w-auto text-gray-700">
             Your Moodboards
           </div>
-          <RoundContainer hoverable={true}>
+          {/* <RoundContainer hoverable={true}>
             <div className="m-2 text-gray-700">
               Login
             </div>
-          </RoundContainer>
+          </RoundContainer> */}
         </div>
         <div className="flex flex-col justify-between flex-1 min-w-0 min-h-0">
           <div className="grid grid-cols-1 lg:grid-cols-4 p-6 overflow-auto">
