@@ -209,6 +209,10 @@ const bgVs = `#version 300 es
     gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
   }
 `;
+
+// credits to:
+// https://bgolus.medium.com/the-best-darn-grid-shader-yet-727f9278b9d8
+// would not know how to make a grid shader as fast as i did without this
 const bgFs = `#version 300 es
   precision highp float;
   precision mediump int;
