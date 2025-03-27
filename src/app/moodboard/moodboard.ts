@@ -4,7 +4,7 @@ import { mat3, vec3 } from "gl-matrix";
 import { ImageSerial, MoodboardData, MoodboardSerial, Mouse, Vector2 } from "./types";
 import { MoodboardImage } from "./image";
 import { VERSION } from "@/components/constants";
-import { MoodboardObject, updateMoodboard } from "@/api/moodboard";
+import { MoodboardObject } from "@/api/moodboard";
 
 const RESERVED_ID_NUM = 100;
 
@@ -215,7 +215,7 @@ class Moodboard {
     await new Promise(async (resolve, reject) => {
       this.canvas?.toBlob((blob) => {
         
-        this.moodboardData.thumbnail?.remove();
+        // this.moodboardData.thumbnail?.remove();
         if (blob === null) {
           console.log("huh?")
           reject();
@@ -231,7 +231,7 @@ class Moodboard {
         });
 
         this.moodboardData.thumbnail.src = url;
-        document.body.appendChild(this.moodboardData.thumbnail);
+        // document.body.appendChild(this.moodboardData.thumbnail);
       }, "image/png");
     });
 
@@ -261,7 +261,7 @@ class Moodboard {
     console.log(thumbnailData);
 
     
-    this.moodboardData.thumbnail?.remove();
+    // this.moodboardData.thumbnail?.remove();
 
     return {
       "version": VERSION,
@@ -333,7 +333,7 @@ class Moodboard {
         onLoad(imageElement, image.width, image.height, image.position, image.scale);
       });
       imageElement.src = objectURL;
-      document.body.appendChild(imageElement);
+      // document.body.appendChild(imageElement);
       console.log(objectURL);
       console.log(imageElement);
       
@@ -348,8 +348,8 @@ class Moodboard {
     this.moodboardData = moodboardData;
   }
 
-  async saveMoodboardToLocalDb() {
-    this.toObj().then((obj) => {
+  async toDBFormat () {
+    return new Promise<MoodboardObject>((resolve) => this.toObj().then((obj) => {
       const data = JSON.stringify(<JSON><unknown>obj);
 
       const moodboardObj :MoodboardObject = {
@@ -360,8 +360,8 @@ class Moodboard {
         moodboardData: data,
       };
 
-      updateMoodboard(moodboardObj);
-    });
+      resolve(moodboardObj);
+    }));
   }
 
   process() {
@@ -373,7 +373,18 @@ class Moodboard {
     for (const [, image] of this.images)  {
       image.unmount();
     }
-    this.moodboardData.thumbnail?.remove();
+    if (this.moodboardData.thumbnail) {
+      // this.moodboardData.thumbnail.remove();
+    }
+    
+  }
+
+  remount() {
+    this.inputComponent.setup(this);
+    // for (const [, image] of this.images)  {
+    //   image.unmount();
+    // }
+    // this.moodboardData.thumbnail?.remove();
   }
 }
 
@@ -671,6 +682,7 @@ class MoodboardInputComponent {
   setup(moodboard: Moodboard) {
     // // setup mouse listeners
     // this.handleMouseDown = this.onMouseDown.bind(this, event, moodboard);
+    console.log("setup input");
     document.addEventListener('pointerdown', this.handlePointerDown = (event) => {
       this.onPointerDown(event, moodboard);
     });

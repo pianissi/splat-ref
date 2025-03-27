@@ -9,8 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.69.0",
+    "@types/js-cookie": "^3.0.6",
     "gl-matrix": "^3.4.3",
     "idb": "^8.0.2",
+    "js-cookie": "^3.0.5",
     "motion": "^12.6.1",
     "next": "15.1.7",
     "radix-ui": "^1.1.3",
