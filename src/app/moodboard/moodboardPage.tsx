@@ -1,26 +1,32 @@
 'use client'
-import { DragEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { DragEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Moodboard, UNSELECTED } from "./moodboard";
-import Link from "next/link";
 import { FiArrowLeft, FiDownload, FiSave, FiX } from "react-icons/fi";
-import { RoundContainer } from "../../../components/RoundContainer";
-import { getMoodboard, initDb } from "@/api/moodboard";
-import { useParams} from "next/navigation";
+import { RoundContainer } from "../../components/RoundContainer";
 import { isBrowser } from "react-device-detect";
 import { LuImageMinus, LuImagePlus } from "react-icons/lu";
 import { Dialog } from "radix-ui";
 import { MdOutlineDriveFileRenameOutline } from "react-icons/md";
 import { RiCrosshair2Line } from "react-icons/ri";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
+import { useRouter } from "next/navigation";
 
 
 
-export default function Home() {
+export default function MoodboardPage({
+  moodboard,
+  saveMoodboardToDb,
+  initMoodboard,
+} : {
+  moodboard : Moodboard,
+  saveMoodboardToDb : () => Promise<void>,
+  initMoodboard : (canvas: HTMLCanvasElement) => Promise<void>,
+}) {
 
-  const params = useParams<{moodboardId: string}>();
-  const [moodboard, setMoodboard] = useState<Moodboard | null>(null);
   const [selectedImageId, setSelectedImageId] = useState<number>(UNSELECTED);
-  const [name, setName] = useState<string>("unassigned moodboard name");
+  const [name, setName] = useState<string>("w");
+
+  const router = useRouter();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -36,56 +42,41 @@ export default function Home() {
     }
   };
 
-  useLayoutEffect(() => {
-    // get moodboardId
-    setMoodboard(new Moodboard({"moodboardId": Number(params.moodboardId), "ownerId": -1, "moodboardName": "", "thumbnail": null}));
-  }, [params.moodboardId]);
+  const renderFrame = useCallback(() => {
+    moodboard?.process();
+
+    const id = moodboard?.getSelectedImageId();
+    if (id !== undefined)
+      setSelectedImageId(id);
+
+    requestAnimationFrame(renderFrame);
+  }, [moodboard]);
 
   useEffect(() => {
-    const renderFrame = () => {
-      moodboard?.process();
-  
-      const id = moodboard?.getSelectedImageId();
-      if (id !== undefined)
-        setSelectedImageId(id);
-  
-  
-      requestAnimationFrame(renderFrame);
-    };
-    if (canvasRef.current === null)
-      return;
+    const init = async () => {
+      if (canvasRef.current === null)
+        return;
 
-    if (moodboard?.canvas === null) {
-  
-      moodboard?.setup(canvasRef.current);
-      const init = async () => {
-        await initDb();
-        const savedMoodboard = await getMoodboard(Number(params.moodboardId));
-        if (!savedMoodboard)
-          return;
-        
-        setName(savedMoodboard.moodboardName);
-        console.log(savedMoodboard.moodboardName);
-        if (!savedMoodboard.moodboardData) {
-          moodboard.setMoodboardMetadata({"moodboardId": Number(params.moodboardId), "ownerId": -1, "moodboardName": savedMoodboard.moodboardName, "thumbnail": null});
-          return;
-        }
-        moodboard.fromJSON(JSON.parse(savedMoodboard.moodboardData));
-        
+      if (moodboard?.canvas === null) {
+        await initMoodboard(canvasRef.current);
+        setName(moodboard.moodboardData.moodboardName);
+        renderFrame();
+      } else {
+        moodboard?.remount();
       }
-      init();
-      renderFrame();
-    }
 
+    }
+    init();
+      
     return () => {
       console.log("i'm unmounting")
       if (!moodboard)
         return;
-      moodboard.saveMoodboardToLocalDb();
+      saveMoodboardToDb();
 
       moodboard.unmount();
     }
-  }, [canvasRef, moodboard, params.moodboardId]);
+  }, [canvasRef, initMoodboard, moodboard, renderFrame, saveMoodboardToDb]);
 
   useEffect(() => {
     const onBeforeUnload = async (event: BeforeUnloadEvent) => {
@@ -95,9 +86,8 @@ export default function Home() {
       if (!moodboard) {
         return;
       }
-  
       
-      await moodboard.saveMoodboardToLocalDb();
+      // await saveMoodboardToDb();
 
       moodboard.unmount();
       return (event.returnValue = '');
@@ -217,11 +207,15 @@ export default function Home() {
       >
         <div className="flex flex-row">
           <RoundContainer hoverable={true}>
-            <Link href="/" className="block">
+            <button onClick={async () => {
+              await saveMoodboardToDb();
+              router.back();
+
+            }} className="block">
               <div className="block h-max overflow-hidden">
                 <FiArrowLeft className="m-2" color="#666666" size="1.5em"></FiArrowLeft>
               </div>
-            </Link>
+            </button>
           </RoundContainer>
           {isBrowser && <RoundContainer className="mx-2 ml-0">
               <div className="m-2 mx-4 text-gray-500 max-w-sm text-ellipsis overflow-hidden text-nowrap" suppressHydrationWarning>
@@ -286,7 +280,7 @@ export default function Home() {
           </RoundContainer>}
           <div className="">
             <RoundContainer hoverable={true}>
-              <button className="block" onClick={() => moodboard?.saveMoodboardToLocalDb()}>
+              <button className="block" onClick={() => saveMoodboardToDb()}>
                 <FiSave className="m-2" color="#666666" size="1.5em"></FiSave>
               </button>
             </RoundContainer>
@@ -297,7 +291,7 @@ export default function Home() {
             </RoundContainer>
             <RenameDialog handleSubmit={(newName) => {
                 moodboard?.renameMoodboard(newName);
-                moodboard?.saveMoodboardToLocalDb();
+                saveMoodboardToDb();
               }}
               handleCancel={() => {
                 if (moodboard?.moodboardData.moodboardName)
@@ -338,6 +332,12 @@ function RenameDialog({handleSubmit, handleCancel, value, setValue}: Props) {
     }
     setOpen(false);
   };
+
+  useEffect(() => {
+    if (!open) {
+      handleCancel();
+    }
+  }, [handleCancel, open])
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
