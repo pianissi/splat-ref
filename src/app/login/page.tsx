@@ -71,7 +71,7 @@ export default function Login(){
       {!user ? (
       <div className="">
         <form onSubmit={handleSubmit}>
-          <span className="">Lama Login</span>
+          <span className="">Login</span>
           <input
             type="text"
             placeholder="email"

@@ -1,9 +1,9 @@
 'use client'
-import { DragEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { DragEvent, RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Moodboard, UNSELECTED } from "./moodboard";
 import Link from "next/link";
 import { FiArrowLeft, FiDownload, FiSave, FiX } from "react-icons/fi";
-import { RoundContainer } from "../../../components/RoundContainer";
+import { RoundContainer } from "../../components/RoundContainer";
 import { getMoodboard, initDb, MoodboardObject, updateMoodboard } from "@/api/moodboard";
 import { useParams} from "next/navigation";
 import { isBrowser } from "react-device-detect";
@@ -15,12 +15,18 @@ import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 
 
 
-export default function MoodboardPage() {
+export default function MoodboardPage({
+  moodboard,
+  saveMoodboardToDb,
+  initMoodboard,
+} : {
+  moodboard : Moodboard,
+  saveMoodboardToDb : () => Promise<void>,
+  initMoodboard : (canvas: HTMLCanvasElement) => Promise<void>,
+}) {
 
-  const params = useParams<{moodboardId: string}>();
-  const [moodboard, setMoodboard] = useState<Moodboard | null>(null);
   const [selectedImageId, setSelectedImageId] = useState<number>(UNSELECTED);
-  const [name, setName] = useState<string>("unassigned moodboard name");
+  const [name, setName] = useState<string>("w");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -36,55 +42,32 @@ export default function MoodboardPage() {
     }
   };
 
-  useLayoutEffect(() => {
-    // get moodboardId
-    setMoodboard(new Moodboard({"moodboardId": Number(params.moodboardId), "ownerId": -1, "moodboardName": "", "thumbnail": null}));
-  }, [params.moodboardId]);
+  const renderFrame = useCallback(() => {
+    moodboard?.process();
 
-  const saveMoodboardToDb = useCallback(async () => {
-    if (!moodboard)
-      return;
+    const id = moodboard?.getSelectedImageId();
+    if (id !== undefined)
+      setSelectedImageId(id);
 
-    const moodboardObj = await moodboard.toDBFormat();
-    updateMoodboard(moodboardObj);
+    requestAnimationFrame(renderFrame);
   }, [moodboard]);
 
   useEffect(() => {
-    const renderFrame = () => {
-      moodboard?.process();
-  
-      const id = moodboard?.getSelectedImageId();
-      if (id !== undefined)
-        setSelectedImageId(id);
-  
-  
-      requestAnimationFrame(renderFrame);
-    };
-    if (canvasRef.current === null)
-      return;
+    const init = async () => {
+      if (canvasRef.current === null)
+        return;
 
-    if (moodboard?.canvas === null) {
-  
-      moodboard?.setup(canvasRef.current);
-      const init = async () => {
-        await initDb();
-        const savedMoodboard = await getMoodboard(Number(params.moodboardId));
-        if (!savedMoodboard)
-          return;
-        
-        setName(savedMoodboard.moodboardName);
-        console.log(savedMoodboard.moodboardName);
-        if (!savedMoodboard.moodboardData) {
-          moodboard.setMoodboardMetadata({"moodboardId": Number(params.moodboardId), "ownerId": -1, "moodboardName": savedMoodboard.moodboardName, "thumbnail": null});
-          return;
-        }
-        moodboard.fromJSON(JSON.parse(savedMoodboard.moodboardData));
-        
+      if (moodboard?.canvas === null) {
+        await initMoodboard(canvasRef.current);
+        setName(moodboard.moodboardData.moodboardName);
+        renderFrame();
+      } else {
+        moodboard?.remount();
       }
-      init();
-      renderFrame();
-    }
 
+    }
+    init();
+      
     return () => {
       console.log("i'm unmounting")
       if (!moodboard)
@@ -93,7 +76,7 @@ export default function MoodboardPage() {
 
       moodboard.unmount();
     }
-  }, [canvasRef, moodboard, params.moodboardId, saveMoodboardToDb]);
+  }, [canvasRef, initMoodboard, moodboard, renderFrame, saveMoodboardToDb]);
 
   useEffect(() => {
     const onBeforeUnload = async (event: BeforeUnloadEvent) => {
@@ -103,7 +86,6 @@ export default function MoodboardPage() {
       if (!moodboard) {
         return;
       }
-  
       
       await saveMoodboardToDb();
 
@@ -346,6 +328,12 @@ function RenameDialog({handleSubmit, handleCancel, value, setValue}: Props) {
     }
     setOpen(false);
   };
+
+  useEffect(() => {
+    if (!open) {
+      handleCancel();
+    }
+  }, [handleCancel, open])
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>

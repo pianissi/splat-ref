@@ -4,7 +4,7 @@ import { mat3, vec3 } from "gl-matrix";
 import { ImageSerial, MoodboardData, MoodboardSerial, Mouse, Vector2 } from "./types";
 import { MoodboardImage } from "./image";
 import { VERSION } from "@/components/constants";
-import { MoodboardObject, updateMoodboard } from "@/api/moodboard";
+import { MoodboardObject } from "@/api/moodboard";
 
 const RESERVED_ID_NUM = 100;
 
@@ -375,6 +375,14 @@ class Moodboard {
     }
     this.moodboardData.thumbnail?.remove();
   }
+
+  remount() {
+    this.inputComponent.setup(this);
+    // for (const [, image] of this.images)  {
+    //   image.unmount();
+    // }
+    // this.moodboardData.thumbnail?.remove();
+  }
 }
 
 class MoodboardRenderComponent {
@@ -671,6 +679,7 @@ class MoodboardInputComponent {
   setup(moodboard: Moodboard) {
     // // setup mouse listeners
     // this.handleMouseDown = this.onMouseDown.bind(this, event, moodboard);
+    console.log("setup input");
     document.addEventListener('pointerdown', this.handlePointerDown = (event) => {
       this.onPointerDown(event, moodboard);
     });

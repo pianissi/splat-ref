@@ -1,4 +1,4 @@
-import { ImageSerial } from '@/app/moodboard/[moodboardId]/types';
+import { ImageSerial } from '@/app/moodboard/types';
 import { openDB, deleteDB, DBSchema, IDBPDatabase } from 'idb';
 
 export interface MoodboardMini {
