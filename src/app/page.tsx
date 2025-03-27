@@ -125,7 +125,7 @@ export default function LocalHome() {
                 SplatRef
               </div>
               <div className="text-xl px-4 font-normal text-gray-600">
-                Online Moodboards
+                Local Moodboards
               </div>
             </div>
             <RoundContainer className="m-0" hoverable={true}> 
