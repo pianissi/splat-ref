@@ -1,11 +1,8 @@
 'use client'
-import { DragEvent, RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { DragEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Moodboard, UNSELECTED } from "./moodboard";
-import Link from "next/link";
 import { FiArrowLeft, FiDownload, FiSave, FiX } from "react-icons/fi";
 import { RoundContainer } from "../../components/RoundContainer";
-import { getMoodboard, initDb, MoodboardObject, updateMoodboard } from "@/api/moodboard";
-import { useParams} from "next/navigation";
 import { isBrowser } from "react-device-detect";
 import { LuImageMinus, LuImagePlus } from "react-icons/lu";
 import { Dialog } from "radix-ui";

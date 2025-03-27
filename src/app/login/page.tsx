@@ -1,6 +1,5 @@
 'use client'
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { SyntheticEvent, useEffect, useState } from "react";
 import { RoundContainer } from "@/components/RoundContainer";
 import Image from "next/image";
 import { CgSpinner } from "react-icons/cg";
@@ -14,8 +13,6 @@ export default function Login(){
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [toastOpen, setToastOpen] = useState(false);
-
-  const router = useRouter();
 
   useEffect(() => {
     const testRefreshToken = async () => {
@@ -40,7 +37,7 @@ export default function Login(){
     testRefreshToken();
   }, []);
 
-  const handleSubmit = async(e)=>{
+  const handleSubmit = async(e : SyntheticEvent)=>{
     e.preventDefault();
     console.log(process.env.NEXT_PUBLIC_BACKEND_HOST);
     try{

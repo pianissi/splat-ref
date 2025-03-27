@@ -1,20 +1,11 @@
 'use client'
-import { useEffect, useState } from "react";
-import Cookies from 'js-cookie';
-import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { RoundContainer } from "@/components/RoundContainer";
 import Image from "next/image";
 import { CgSpinner } from "react-icons/cg";
 import { Toast } from "radix-ui";
-import { motion } from "motion/react";
 
 export default function Login(){
-  const [user, setUser] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [toastOpen, setToastOpen] = useState(false);
-
-  const router = useRouter();
 
   useEffect(() => {
     const revokeRefreshToken = async () => {
