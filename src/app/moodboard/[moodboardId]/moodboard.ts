@@ -333,7 +333,7 @@ class Moodboard {
         onLoad(imageElement, image.width, image.height, image.position, image.scale);
       });
       imageElement.src = objectURL;
-      document.body.appendChild(imageElement);
+      // document.body.appendChild(imageElement);
       console.log(objectURL);
       console.log(imageElement);
       
@@ -348,8 +348,8 @@ class Moodboard {
     this.moodboardData = moodboardData;
   }
 
-  async saveMoodboardToLocalDb() {
-    this.toObj().then((obj) => {
+  async toDBFormat () {
+    return new Promise<MoodboardObject>((resolve) => this.toObj().then((obj) => {
       const data = JSON.stringify(<JSON><unknown>obj);
 
       const moodboardObj :MoodboardObject = {
@@ -360,8 +360,8 @@ class Moodboard {
         moodboardData: data,
       };
 
-      updateMoodboard(moodboardObj);
-    });
+      resolve(moodboardObj);
+    }));
   }
 
   process() {

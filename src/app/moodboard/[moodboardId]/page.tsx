@@ -1,10 +1,10 @@
 'use client'
-import { DragEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { DragEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Moodboard, UNSELECTED } from "./moodboard";
 import Link from "next/link";
 import { FiArrowLeft, FiDownload, FiSave, FiX } from "react-icons/fi";
 import { RoundContainer } from "../../../components/RoundContainer";
-import { getMoodboard, initDb } from "@/api/moodboard";
+import { getMoodboard, initDb, MoodboardObject, updateMoodboard } from "@/api/moodboard";
 import { useParams} from "next/navigation";
 import { isBrowser } from "react-device-detect";
 import { LuImageMinus, LuImagePlus } from "react-icons/lu";
@@ -15,7 +15,7 @@ import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 
 
 
-export default function Home() {
+export default function MoodboardPage() {
 
   const params = useParams<{moodboardId: string}>();
   const [moodboard, setMoodboard] = useState<Moodboard | null>(null);
@@ -40,6 +40,14 @@ export default function Home() {
     // get moodboardId
     setMoodboard(new Moodboard({"moodboardId": Number(params.moodboardId), "ownerId": -1, "moodboardName": "", "thumbnail": null}));
   }, [params.moodboardId]);
+
+  const saveMoodboardToDb = useCallback(async () => {
+    if (!moodboard)
+      return;
+
+    const moodboardObj = await moodboard.toDBFormat();
+    updateMoodboard(moodboardObj);
+  }, [moodboard]);
 
   useEffect(() => {
     const renderFrame = () => {
@@ -81,11 +89,11 @@ export default function Home() {
       console.log("i'm unmounting")
       if (!moodboard)
         return;
-      moodboard.saveMoodboardToLocalDb();
+      saveMoodboardToDb();
 
       moodboard.unmount();
     }
-  }, [canvasRef, moodboard, params.moodboardId]);
+  }, [canvasRef, moodboard, params.moodboardId, saveMoodboardToDb]);
 
   useEffect(() => {
     const onBeforeUnload = async (event: BeforeUnloadEvent) => {
@@ -97,7 +105,7 @@ export default function Home() {
       }
   
       
-      await moodboard.saveMoodboardToLocalDb();
+      await saveMoodboardToDb();
 
       moodboard.unmount();
       return (event.returnValue = '');
@@ -108,7 +116,7 @@ export default function Home() {
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload, {capture: true});
     };
-  }, [moodboard]);
+  }, [moodboard, saveMoodboardToDb]);
 
   // useEffect(() => {
   const onDragOver = (e: DragEvent<HTMLElement>) => {
@@ -286,7 +294,7 @@ export default function Home() {
           </RoundContainer>}
           <div className="">
             <RoundContainer hoverable={true}>
-              <button className="block" onClick={() => moodboard?.saveMoodboardToLocalDb()}>
+              <button className="block" onClick={() => saveMoodboardToDb()}>
                 <FiSave className="m-2" color="#666666" size="1.5em"></FiSave>
               </button>
             </RoundContainer>
@@ -297,7 +305,7 @@ export default function Home() {
             </RoundContainer>
             <RenameDialog handleSubmit={(newName) => {
                 moodboard?.renameMoodboard(newName);
-                moodboard?.saveMoodboardToLocalDb();
+                saveMoodboardToDb();
               }}
               handleCancel={() => {
                 if (moodboard?.moodboardData.moodboardName)
