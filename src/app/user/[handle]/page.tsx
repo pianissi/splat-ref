@@ -83,7 +83,6 @@ export default function OnlineHome() {
           }
           moodboardsData.push(moodboardData);
         }
-        
       }
       await Promise.all(promises);
       moodboardsData.sort((a, b) => {
@@ -187,6 +186,6 @@ export default function OnlineHome() {
     handleClearDb={handleClearDb}
     handleDeleteMoodboard={handleDeleteMoodboard}
     handleUploadMoodboard={handleUploadMoodboard}
-    baseUrl="/test"
+    baseUrl="/moodboard/online/"
   />
 }

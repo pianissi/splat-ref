@@ -215,7 +215,7 @@ class Moodboard {
     await new Promise(async (resolve, reject) => {
       this.canvas?.toBlob((blob) => {
         
-        this.moodboardData.thumbnail?.remove();
+        // this.moodboardData.thumbnail?.remove();
         if (blob === null) {
           console.log("huh?")
           reject();
@@ -231,7 +231,7 @@ class Moodboard {
         });
 
         this.moodboardData.thumbnail.src = url;
-        document.body.appendChild(this.moodboardData.thumbnail);
+        // document.body.appendChild(this.moodboardData.thumbnail);
       }, "image/png");
     });
 
@@ -261,7 +261,7 @@ class Moodboard {
     console.log(thumbnailData);
 
     
-    this.moodboardData.thumbnail?.remove();
+    // this.moodboardData.thumbnail?.remove();
 
     return {
       "version": VERSION,
@@ -373,7 +373,10 @@ class Moodboard {
     for (const [, image] of this.images)  {
       image.unmount();
     }
-    this.moodboardData.thumbnail?.remove();
+    if (this.moodboardData.thumbnail) {
+      // this.moodboardData.thumbnail.remove();
+    }
+    
   }
 
   remount() {

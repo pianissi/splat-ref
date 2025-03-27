@@ -12,6 +12,7 @@ import { Dialog } from "radix-ui";
 import { MdOutlineDriveFileRenameOutline } from "react-icons/md";
 import { RiCrosshair2Line } from "react-icons/ri";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
+import { useRouter } from "next/navigation";
 
 
 
@@ -27,6 +28,8 @@ export default function MoodboardPage({
 
   const [selectedImageId, setSelectedImageId] = useState<number>(UNSELECTED);
   const [name, setName] = useState<string>("w");
+
+  const router = useRouter();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -87,7 +90,7 @@ export default function MoodboardPage({
         return;
       }
       
-      await saveMoodboardToDb();
+      // await saveMoodboardToDb();
 
       moodboard.unmount();
       return (event.returnValue = '');
@@ -98,7 +101,7 @@ export default function MoodboardPage({
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload, {capture: true});
     };
-  }, [moodboard, saveMoodboardToDb]);
+  }, [moodboard]);
 
   // useEffect(() => {
   const onDragOver = (e: DragEvent<HTMLElement>) => {
@@ -207,11 +210,15 @@ export default function MoodboardPage({
       >
         <div className="flex flex-row">
           <RoundContainer hoverable={true}>
-            <Link href="/" className="block">
+            <button onClick={async () => {
+              await saveMoodboardToDb();
+              router.back();
+
+            }} className="block">
               <div className="block h-max overflow-hidden">
                 <FiArrowLeft className="m-2" color="#666666" size="1.5em"></FiArrowLeft>
               </div>
-            </Link>
+            </button>
           </RoundContainer>
           {isBrowser && <RoundContainer className="mx-2 ml-0">
               <div className="m-2 mx-4 text-gray-500 max-w-sm text-ellipsis overflow-hidden text-nowrap" suppressHydrationWarning>

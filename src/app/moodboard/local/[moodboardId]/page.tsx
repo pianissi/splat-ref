@@ -1,5 +1,5 @@
 'use client'
-import { RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { getMoodboard, initDb, updateMoodboard } from "@/api/moodboard";
 import { useParams} from "next/navigation";
 import MoodboardPage from "../../moodboardPage";
