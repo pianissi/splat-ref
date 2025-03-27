@@ -3,6 +3,9 @@ import { MoodboardMini } from "@/api/moodboard";
 import { SyntheticEvent, useCallback, useEffect, useState } from "react";
 import Home from "../../home";
 import { useParams } from "next/navigation";
+import Image from "next/image";
+import { RoundContainer } from "@/components/RoundContainer";
+import Link from "next/link";
 
 export default function OnlineHome() {
   const [accessToken, setAccessToken] = useState<string>();
@@ -11,26 +14,35 @@ export default function OnlineHome() {
   const params = useParams<{handle: string}>();
 
   const refreshAccessToken = useCallback(async () => {
-    console.log("test");
-      // first init token
-    const refreshResponse = await fetch(process.env.NEXT_PUBLIC_BACKEND_HOST + "/api/v1/auth/refresh",{
-      method: "POST",
-      credentials: "include",
-    });
+    try {
+      console.log("test");
+        // first init token
+      const refreshResponse = await fetch(process.env.NEXT_PUBLIC_BACKEND_HOST + "/api/v1/auth/refresh",{
+        method: "POST",
+        credentials: "include",
+      });
 
-    const refreshJson = await refreshResponse.json();
+      if (!refreshResponse.ok) {
+        throw new Error(`Response status: ${refreshResponse.status}`);
+      }
 
-    // console.log(json);
+      const refreshJson = await refreshResponse.json();
 
-    if (params.handle !== refreshJson.handle) {
-      window.location.assign("/user/" + refreshJson.handle);
+      // console.log(json);
+
+      if (params.handle !== refreshJson.handle) {
+        window.location.assign("/user/" + refreshJson.handle);
+      }
+      
+      const tempAccessToken = refreshJson.accessToken;
+      
+      setAccessToken(tempAccessToken);
+
+      return tempAccessToken;
+    } catch (error) {
+      console.log(error);
+      window.location.assign("/");
     }
-    
-    const tempAccessToken = refreshJson.accessToken;
-    
-    setAccessToken(tempAccessToken);
-
-    return tempAccessToken;
   }, [params.handle]);
 
   // TODO what if access token expires
@@ -180,12 +192,42 @@ export default function OnlineHome() {
     window.location.reload();
   }
 
-  return <Home
-    moodboards={moodboards}
-    handleAddMoodboard={handleAddMoodboard}
-    handleClearDb={handleClearDb}
-    handleDeleteMoodboard={handleDeleteMoodboard}
-    handleUploadMoodboard={handleUploadMoodboard}
-    baseUrl="/moodboard/online/"
-  />
+  return (
+    <div className="flex flex-col w-dvw h-dvh">
+      <div className="flex px-4 justify-between items-center bg-gray-50 shadow-md border-b border-gray-300">
+        <div className="flex flex-row justify-between gap-4 text-2xl m-4 font-bold h-fit items-center align-middle w-full text-gray-700">
+          <div className="flex flex-row gap-4">
+            <Image src="/splat-ref-icon.png" width={36} height={36 } alt="Icon of SplatRef"/>
+            <div className="text-2xl font-bold text-gray-700">
+              SplatRef
+            </div>
+            <div className="text-xl px-4 font-normal text-gray-600">
+              Online Moodboards
+            </div>
+          </div>
+          <div className="flex flex-row-reverse gap-4">
+            
+            <RoundContainer className="m-0 bg-gray-700 text-gray-50 hover:bg-gray-500" hoverable={true}> 
+              <Link href="/logout" className="">
+                <div className="text-lg px-4 font-normal ">Sign out</div>
+              </Link>
+            </RoundContainer>
+            <RoundContainer className="m-0" hoverable={true}> 
+              <Link href="/" className="">
+                <div className="text-lg px-4 font-normal text-gray-600">Back to Local</div>
+              </Link>
+            </RoundContainer>
+          </div>
+        </div>
+      </div>
+        <Home
+        moodboards={moodboards}
+        handleAddMoodboard={handleAddMoodboard}
+        handleClearDb={handleClearDb}
+        handleDeleteMoodboard={handleDeleteMoodboard}
+        handleUploadMoodboard={handleUploadMoodboard}
+        baseUrl="/moodboard/online/"
+      />
+    </div>
+  )
 }
