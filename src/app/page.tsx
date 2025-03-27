@@ -118,5 +118,6 @@ export default function LocalHome() {
     handleClearDb={handleClearDb}
     handleDeleteMoodboard={handleDeleteMoodboard}
     handleUploadMoodboard={handleUploadMoodboard}
+    baseUrl="/moodboard"
   />
 }

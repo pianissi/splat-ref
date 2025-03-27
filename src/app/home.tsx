@@ -12,12 +12,14 @@ export default function Home({
   handleAddMoodboard,
   handleUploadMoodboard,
   handleClearDb,
+  baseUrl,
 }: {
   moodboards : MoodboardMini[],
   handleDeleteMoodboard: (event: SyntheticEvent<HTMLDivElement>, moodboardId: number) => void,
   handleAddMoodboard: (name: string) => void
   handleUploadMoodboard: (jsonString: string) => void
-  handleClearDb: () => void
+  handleClearDb: () => void,
+  baseUrl: string
 }) {
 
   const moodboardsData : React.JSX.Element[] = [];
@@ -26,7 +28,7 @@ export default function Home({
 
       console.log(thumbnailUrl);
       moodboardsData.push(
-        <MoodboardLink key={moodboard.moodboardId} moodboardId={moodboard.moodboardId}>
+        <MoodboardLink baseUrl={baseUrl} key={moodboard.moodboardId} moodboardId={moodboard.moodboardId}>
           <div className="overflow-hidden">
             <div className="flex justify-between">
               <div className="text-gray-500 text-nowrap text-ellipsis overflow-hidden text-lg">
@@ -106,9 +108,9 @@ export default function Home({
   );
 }
 
-function MoodboardLink({children, moodboardId}: {children: ReactElement, moodboardId: number}) {
+function MoodboardLink({children, moodboardId, baseUrl}: {children: ReactElement, moodboardId: number, baseUrl: string}) {
   return (
-    <Link className="m-2 h-fit flex shrink-0 p-4 lg:p-6 shadow-gray-300 bg-white rounded-xl shadow-lg justify-center transition hover:bg-slate-200 hover:shadow-xl hover:shadow-gray-400" href={`/moodboard/${moodboardId.toString()}`}>
+    <Link className="m-2 h-fit flex shrink-0 p-4 lg:p-6 shadow-gray-300 bg-white rounded-xl shadow-lg justify-center transition hover:bg-slate-200 hover:shadow-xl hover:shadow-gray-400" href={`${baseUrl}/${moodboardId.toString()}`}>
       {children}
     </Link>
   );
