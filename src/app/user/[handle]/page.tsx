@@ -1,5 +1,5 @@
 'use client'
-import { addMoodboard, clearDb, getAllMoodboards, initDb, MoodboardObject, MoodboardMini, deleteMoodboard } from "@/api/moodboard";
+import { MoodboardMini } from "@/api/moodboard";
 import { SyntheticEvent, useCallback, useEffect, useState } from "react";
 import Home from "../../home";
 import { useParams } from "next/navigation";
