@@ -5,6 +5,7 @@ import Home from "./home";
 import Image from "next/image";
 import { RoundContainer } from "@/components/RoundContainer";
 import Link from "next/link";
+import { isBrowser } from "react-device-detect";
 
 export default function LocalHome() {
   const [moodboards, setMoodboards] = useState<MoodboardMini[]>([]);
@@ -120,10 +121,10 @@ export default function LocalHome() {
       <div className="flex px-4 justify-between items-center bg-gray-50 shadow-md border-b border-gray-300">
           <div className="flex flex-row justify-between gap-4 text-2xl m-4 font-bold h-fit items-center align-middle w-full text-gray-700">
             <div className="flex flex-row gap-4">
-              <Image src="/splat-ref-icon.png" width={36} height={36 } alt="Icon of SplatRef"/>
-              <div className="text-2xl font-bold text-gray-700">
+              <Image src="/splat-ref-icon.png" className="object-contain" width={36} height={36} alt="Icon of SplatRef"/>
+              {isBrowser && <div className="text-2xl font-bold text-gray-700" suppressHydrationWarning>
                 SplatRef
-              </div>
+              </div>}
               <div className="text-xl px-4 font-normal text-gray-600">
                 Local Moodboards
               </div>
